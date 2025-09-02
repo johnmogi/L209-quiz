@@ -68,6 +68,9 @@
         // Set up event handlers
         setupEventHandlers();
         
+        // Show initial hint boxes for all questions
+        showInitialHintBoxes();
+        
         // Perform initial setup for questions
         $('.wpProQuiz_listItem').each(setupQuestion);
         
