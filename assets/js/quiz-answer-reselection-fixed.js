@@ -83,8 +83,11 @@
         // Remove any debug containers that may interfere
         removeDebugContainers();
         
-        // Make sure inputs are always enabled
-        enableAllInputs();
+        // Extract question data from the DOM
+        extractQuestionData();
+        
+        // Apply consistent styling to all buttons
+        styleAllButtons();
         
         // Inject initial hint boxes immediately
         injectInitialHintBoxes();
@@ -92,11 +95,20 @@
         // Set up event handlers
         setupEventHandlers();
         
-        // Perform initial setup for questions
-        $('.wpProQuiz_listItem').each(setupQuestion);
+        // Add click-to-check behavior to answer items
+        setupAnswerClickToCheck();
         
         // Set up MutationObserver to watch for DOM changes
         setupObserver();
+        
+        // Check for any already-correct answers and handle them
+        $('.wpProQuiz_listItem').each(function() {
+            const $question = $(this);
+            if ($question.find('.wpProQuiz_correct').is(':visible')) {
+                log.info('Found correct answer already selected, forcing Next button visibility');
+                showNextButton($question);
+            }
+        });
     }
     
     /**
@@ -459,6 +471,91 @@
     }
 
     /**
+     * Show hint in a modal
+     */
+    function showHintModal($question) {
+        const $hintContent = $question.find('.wpProQuiz_tipp');
+        if ($hintContent.length) {
+            // Create modal container if it doesn't exist
+            if (!$('#lilac-hint-modal').length) {
+                $('body').append(`
+                    <div id="lilac-hint-modal" class="lilac-modal">
+                        <div class="lilac-modal-content">
+                            <span class="lilac-modal-close">&times;</span>
+                            <div class="lilac-modal-body"></div>
+                        </div>
+                    </div>
+                `);
+                
+                // Add modal styles if not already added
+                if (!$('#lilac-modal-styles').length) {
+                    $('<style id="lilac-modal-styles">')
+                        .text(`
+                            .lilac-modal {
+                                display: none;
+                                position: fixed;
+                                z-index: 9999;
+                                left: 0;
+                                top: 0;
+                                width: 100%;
+                                height: 100%;
+                                background-color: rgba(0,0,0,0.5);
+                            }
+                            .lilac-modal-content {
+                                background-color: #fefefe;
+                                margin: 15% auto;
+                                padding: 20px;
+                                border: 1px solid #888;
+                                width: 90%;
+                                max-width: 800px;
+                                max-height: 60vh;
+                                overflow-y: auto;
+                                border-radius: 8px;
+                                position: relative;
+                            }
+                            .lilac-modal-close {
+                                color: #aaa;
+                                float: right;
+                                font-size: 28px;
+                                font-weight: bold;
+                                cursor: pointer;
+                            }
+                            .lilac-modal-close:hover {
+                                color: black;
+                            }
+                            .lilac-modal-body {
+                                margin-top: 20px;
+                                direction: rtl;
+                                text-align: right;
+                            }
+                            .learndash-wrapper .wpProQuiz_content .wpProQuiz_questionListItem.wpProQuiz_answerCorrectIncomplete label {
+                                border-color: inherit !important;
+                            }
+                        `)
+                        .appendTo('head');
+                }
+            }
+            
+            // Show modal with hint content
+            const $modal = $('#lilac-hint-modal');
+            $modal.find('.lilac-modal-body').html($hintContent.html());
+            $modal.fadeIn(200);
+            
+            // Handle close button
+            $modal.find('.lilac-modal-close').off('click').on('click', function() {
+                $modal.fadeOut(200);
+            });
+            
+            // Close on outside click
+            $(window).off('click.lilac-modal').on('click.lilac-modal', function(e) {
+                if ($(e.target).is($modal)) {
+                    $modal.fadeOut(200);
+                }
+            });
+        }
+    }
+
+    /**
      * Remove any debug containers that might interfere with the quiz
      */
     function removeDebugContainers() {
@@ -467,45 +564,119 @@
     }
     
     /**
-     * Set up a mutation observer to watch for dynamically added questions
+     * Set up event handlers for quiz interaction
      */
-    function setupObserver() {
-        // Check if MutationObserver is supported
-        if (!window.MutationObserver) {
-            log.error('MutationObserver not supported in this browser');
-            return;
-        }
-        
-        // Create an observer instance
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                // If nodes were added
-                if (mutation.addedNodes && mutation.addedNodes.length > 0) {
-                    // Check for any new quiz questions
-                    for (let i = 0; i < mutation.addedNodes.length; i++) {
-                        const node = mutation.addedNodes[i];
-                        
-                        if (node.nodeType === 1) { // Element node
-                            if ($(node).hasClass('wpProQuiz_listItem')) {
-                                // Setup the new question
-                                setupQuestion(0, node);
-                            } else {
-                                // Look for questions inside the added node
-                                $(node).find('.wpProQuiz_listItem').each(setupQuestion);
-                            }
-                        }
-                    }
+    function setupEventHandlers() {
+        // Remove any existing handlers
+        $(document).off('click.simplifiedCheck');
+
+        // Handle check button clicks - let native quiz process first
+        $(document).on('click.simplifiedCheck', 'input.wpProQuiz_button[name="check"]', function(e) {
+            const $question = $(this).closest('.wpProQuiz_listItem');
+            const $selected = $question.find('.wpProQuiz_questionInput:checked');
+
+            if (!$selected.length) return;
+
+            log.info('Check button clicked, waiting for quiz calculation...');
+            
+            // Let the native quiz handle the check first
+            // Then watch for the result
+            watchForAnswerResult($question);
+        });
+
+        // Block interactions on locked questions
+        $(document).on('click', '.lilac-locked .wpProQuiz_questionListItem label, ' +
+            '.lilac-locked .wpProQuiz_questionInput', function(e) {
+            log.info('Blocked - must view hint first');
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return false;
+        });
+
+        // Handle hint button clicks - both native and our custom button
+        $(document).on('click', '.wpProQuiz_button[name="tip"], .wpProQuiz_TipButton, .lilac-force-hint', function(e) {
+            e.preventDefault();
+            const $question = $(this).closest('.wpProQuiz_listItem');
+            
+            // Check if clicking our custom hint button
+            if ($(this).hasClass('lilac-force-hint')) {
+                log.info('Custom hint button clicked');
+                // Unlock the question and show modal if question is locked
+                if ($question.hasClass('lilac-locked')) {
+                    handleHintViewing($question);
                 }
-            });
+                // Don't trigger native button, we handle it ourselves
+                return false;
+            }
+            
+            // For native hint button, also show our modal if question is locked
+            if ($question.hasClass('lilac-locked')) {
+                handleHintViewing($question);
+            }
         });
-        
-        // Start observing the entire document
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
+
+        // Handle answer selection (remove messages)
+        $(document).on('change', '.wpProQuiz_questionInput', function() {
+            const $question = $(this).closest('.wpProQuiz_listItem');
+            $question.find('.lilac-correct-answer-message').remove();
         });
-        
-        log.info('MutationObserver setup complete');
+
+        // Handle next button in success message
+        $(document).on('click', '.lilac-force-next', function(e) {
+            e.preventDefault();
+            const $question = $(this).closest('.wpProQuiz_listItem');
+            $question.find('.wpProQuiz_button[name="next"]').trigger('click');
+        });
     }
-    
+
+    /**
+     * Setup click-to-check behavior on answer items
+     */
+    function setupAnswerClickToCheck() {
+        // Use event delegation for answer list items
+        $(document).on('click', '.wpProQuiz_questionListItem', function(e) {
+            const $listItem = $(this);
+            const $question = $listItem.closest('.wpProQuiz_listItem');
+            
+            // Don't process if question is locked
+            if ($question.hasClass('lilac-locked')) {
+                return false;
+            }
+            
+            // Don't process if clicking directly on the radio button (let it handle naturally)
+            if ($(e.target).is('input[type="radio"]')) {
+                return;
+            }
+            
+            // Find the radio button in this list item
+            const $radio = $listItem.find('input[type="radio"]');
+            if ($radio.length && !$radio.prop('disabled')) {
+                // Select the radio button
+                $radio.prop('checked', true).trigger('change');
+                
+                // Small delay then trigger check
+                setTimeout(function() {
+                    const $checkButton = $question.find('input.wpProQuiz_button[name="check"]');
+                    if ($checkButton.length && !$checkButton.prop('disabled')) {
+                        log.info('Auto-checking from answer click');
+                        $checkButton.trigger('click');
+                    }
+                }, 100);
+            }
+        });
+        
+        // Add hover effect to show it's clickable
+        $('<style>')
+            .text(`
+                .wpProQuiz_questionListItem:not(.lilac-locked .wpProQuiz_questionListItem) {
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                }
+                .wpProQuiz_questionListItem:not(.lilac-locked .wpProQuiz_questionListItem):hover {
+                    background-color: rgba(0, 0, 0, 0.05);
+                }
+            `)
+            .appendTo('head');
+    }
+
 })(jQuery);
