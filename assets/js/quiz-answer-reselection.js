@@ -255,6 +255,9 @@ if (typeof jQuery === 'undefined') {
                 'display': 'none'
             });
             
+            // Remove any existing hint messages to prevent duplicates
+            $question.find('.lilac-hint-message').remove();
+            
             // Add hint message to existing response area or create new one
             let $responseArea = $question.find('.wpProQuiz_response');
             if (!$responseArea.length) {
@@ -262,15 +265,18 @@ if (typeof jQuery === 'undefined') {
                 $question.find('.wpProQuiz_questionList').after($responseArea);
             }
             
-            // Add our hint message
+            // Clear any existing content in response area to prevent duplicates
+            $responseArea.empty();
+            
+            // Add our single hint message
             const $hintMessage = $('<div class="lilac-hint-message" style="background-color: rgb(255, 243, 224); border: 1px solid rgb(255, 152, 0); border-radius: 4px; padding: 10px 15px; margin: 15px 0px; text-align: right; font-size: 16px; display: flex; align-items: center; justify-content: space-between; direction: rtl;">' +
                 '<span style="font-weight:bold;color:#e74c3c;">❌ תשובה שגויה!</span>' +
                 '<span>לחץ על רמז לקבלת עזרה</span>' +
                 '<button type="button" class="lilac-force-hint" style="display: inline-block; visibility: visible; background-color: rgb(255, 152, 0); color: white; font-weight: bold; border: 2px solid rgb(230, 126, 34); border-radius: 4px; padding: 8px 24px; cursor: pointer; font-size: 16px; margin-right: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 3px 5px;">רמז</button>' +
                 '</div>');
             
-            // Prepend our message to the response area
-            $responseArea.prepend($hintMessage);
+            // Add our message to the response area
+            $responseArea.append($hintMessage);
             
             // Make sure hint button is visible
             const $hintButton = $question.find('.wpProQuiz_button[name="tip"]');
@@ -349,26 +355,31 @@ if (typeof jQuery === 'undefined') {
             return false;
         });
 
-        // Handle hint button clicks - both native and our custom button
-        $(document).on('click', '.wpProQuiz_button[name="tip"], .wpProQuiz_TipButton, .lilac-force-hint', function(e) {
+        // Handle hint button clicks - both native and our custom button, plus initial hint boxes
+        $(document).on('click', '.wpProQuiz_button[name="tip"], .wpProQuiz_TipButton, .lilac-force-hint, .lilac-clickable-hint', function(e) {
             e.preventDefault();
             const $question = $(this).closest('.wpProQuiz_listItem');
             
-            // Check if clicking our custom hint button
-            if ($(this).hasClass('lilac-force-hint')) {
-                console.log('[LilacQuiz] Custom hint button clicked');
+            // Check if clicking our custom hint button or initial hint box
+            if ($(this).hasClass('lilac-force-hint') || $(this).hasClass('lilac-clickable-hint')) {
+                console.log('[LilacQuiz] Custom hint button or initial hint box clicked');
                 
-                // Unlock the question and show modal
-                if ($question.hasClass('lilac-locked')) {
-                    handleHintViewing($question);
+                // If clicking initial hint box, just show modal (no unlocking needed)
+                if ($(this).hasClass('lilac-clickable-hint')) {
+                    console.log('[LilacQuiz] Initial hint box clicked - showing modal');
+                    showHintModal($question);
+                } else {
+                    // Custom hint button after wrong answer - unlock and show modal
+                    if ($question.hasClass('lilac-locked')) {
+                        handleHintViewing($question);
+                    } else {
+                        // Just show the modal if not locked
+                        showHintModal($question);
+                    }
                 }
-                
-                // Don't trigger native button, we handle it ourselves
-                return false;
-            }
-            
-            // For native hint button, also show our modal if question is locked
-            if ($question.hasClass('lilac-locked')) {
+            } else {
+                // Native hint button clicked
+                console.log('[LilacQuiz] Native hint button clicked');
                 handleHintViewing($question);
             }
         });
@@ -614,10 +625,94 @@ if (typeof jQuery === 'undefined') {
     }
 
     /**
+     * Inject initial hint boxes on page load if body has quiz-enforce-hint class
+     */
+    function injectInitialHints() {
+        // Check if body has the enforce hint class
+        if (!$('body').hasClass('quiz-enforce-hint')) {
+            console.log('[LilacQuiz] Body does not have quiz-enforce-hint class, skipping initial hints');
+            return;
+        }
+
+        console.log('[LilacQuiz] Body has quiz-enforce-hint class, injecting initial hints');
+
+        $('.wpProQuiz_listItem').each(function() {
+            const $question = $(this);
+            const $hintContent = $question.find('.wpProQuiz_tipp');
+            
+            if ($hintContent.length && $hintContent.html().trim()) {
+                // Remove any existing initial hint boxes to prevent duplicates
+                $question.find('.lilac-initial-hint-box').remove();
+                
+                // Create initial hint box with orange styling and click functionality
+                const $initialHintBox = $(`
+                    <div class="lilac-initial-hint-box lilac-clickable-hint" style="
+                        background: linear-gradient(135deg, #ff8c00, #ffa500);
+                        border: 2px solid #ff6b00;
+                        border-radius: 8px;
+                        padding: 15px;
+                        margin: 10px 0;
+                        color: white;
+                        font-weight: bold;
+                        box-shadow: 0 4px 8px rgba(255, 140, 0, 0.3);
+                        position: relative;
+                        overflow: hidden;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                    ">
+                        <div style="
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            height: 3px;
+                            background: linear-gradient(90deg, #ffff00, #ff6b00, #ffff00);
+                            animation: shimmer 2s infinite;
+                        "></div>
+                        <div style="margin-top: 5px;">
+                            🔍 <strong>רמז זמין:</strong> לחץ כאן לצפייה ברמז
+                        </div>
+                    </div>
+                `);
+                
+                // Insert the hint box after the question text but before answers
+                const $questionText = $question.find('.wpProQuiz_question_text, .wpProQuiz_questionListItem').first();
+                if ($questionText.length) {
+                    $questionText.after($initialHintBox);
+                } else {
+                    $question.prepend($initialHintBox);
+                }
+                
+                console.log('[LilacQuiz] Initial hint box injected for question');
+            }
+        });
+        
+        // Add CSS animation for shimmer effect
+        if (!$('#lilac-shimmer-animation').length) {
+            $('head').append(`
+                <style id="lilac-shimmer-animation">
+                    @keyframes shimmer {
+                        0% { transform: translateX(-100%); }
+                        50% { transform: translateX(100%); }
+                        100% { transform: translateX(-100%); }
+                    }
+                    .lilac-initial-hint-box:hover {
+                        transform: scale(1.02);
+                        transition: transform 0.2s ease;
+                    }
+                </style>
+            `);
+        }
+    }
+
+    /**
      * Initialize the quiz answer reselection functionality
      */
     function initQuizAnswerReselection() {
         log.info('Initializing quiz answer reselection');
+        
+        // Inject initial hint boxes if body has enforce hint class
+        injectInitialHints();
         
         // Scan for all existing questions and extract data
         extractQuestionData();
