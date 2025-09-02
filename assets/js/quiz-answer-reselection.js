@@ -287,27 +287,21 @@ if (typeof jQuery === 'undefined') {
             // Clear any existing content in response area to prevent duplicates
             $responseArea.empty();
             
-            // Add our single hint message
-            const $hintMessage = $('<div class="lilac-hint-message" style="background-color: rgb(255, 243, 224); border: 1px solid rgb(255, 152, 0); border-radius: 4px; padding: 10px 15px; margin: 15px 0px; text-align: right; font-size: 16px; display: flex; align-items: center; justify-content: space-between; direction: rtl;">' +
-                '<span style="font-weight:bold;color:#e74c3c;">❌ תשובה שגויה!</span>' +
-                '<span>לחץ על רמז לקבלת עזרה</span>' +
-                '<button type="button" class="lilac-force-hint" style="display: inline-block; visibility: visible; background-color: rgb(255, 152, 0); color: white; font-weight: bold; border: 2px solid rgb(230, 126, 34); border-radius: 4px; padding: 8px 24px; cursor: pointer; font-size: 16px; margin-right: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 3px 5px;">רמז</button>' +
-                '</div>');
-            
-            // Add our message to the response area
+            // Add wrong answer message without the orange hint button
+            const $hintMessage = $('<div class="lilac-hint-message" style="background-color: rgb(255, 243, 224); border: 1px solid rgb(255, 152, 0); border-radius: 4px; padding: 10px 15px; margin: 15px 0px; text-align: right; font-size: 16px; direction: rtl;">' +
+                '<span>תשובה שגויה! לחץ על הרמז הכחול למטה לקבלת עזרה</span>' +
+            '</div>');
             $responseArea.append($hintMessage);
             
-            // Make sure hint button is visible
+            // Change hint box color from blue to orange
+            changeHintBoxesToOrange();
+            
+            // Hide the original orange hint button
             const $hintButton = $question.find('.wpProQuiz_button[name="tip"]');
-            $hintButton.prop('disabled', false).css({
-                'float': 'left',
-                'display': 'inline-block',
-                'margin': '5px',
-                'visibility': 'visible',
-                'opacity': '1',
-                'pointer-events': 'auto',
-                'cursor': 'pointer',
-                'background-color': 'rgb(23, 162, 184)'
+            $hintButton.css({
+                'display': 'none !important',
+                'visibility': 'hidden',
+                'opacity': '0'
             });
         }
     }
@@ -902,6 +896,12 @@ function setupEarlyAnswerDetection($question) {
     function changeHintBoxesToOrange() {
         $('.lilac-initial-hint-box.lilac-hint-blue').each(function() {
             $(this).removeClass('lilac-hint-blue').addClass('lilac-hint-orange');
+            // Update the styling to orange
+            $(this).css({
+                'background': 'linear-gradient(135deg, #ff9800, #f57c00) !important',
+                'border': '2px solid #e65100 !important',
+                'box-shadow': '0 4px 12px rgba(255, 152, 0, 0.3) !important'
+            });
             console.log('[LilacQuiz] Changed hint box to orange');
         });
     }
