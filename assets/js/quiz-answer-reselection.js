@@ -253,26 +253,24 @@ if (typeof jQuery === 'undefined') {
             }).prop('disabled', false);
             
         } else {
-            // For incorrect answers, allow reselection without locking
-            console.log('[LilacQuiz] Incorrect answer - allowing reselection');
+            // For incorrect answers, lock the question until hint is viewed
+            console.log('[LilacQuiz] Incorrect answer - locking question until hint is viewed');
             
-            // Don't lock the question - allow immediate reselection
-            // $question.addClass('lilac-locked'); // REMOVED
+            // Lock the question - require hint viewing before reselection
+            $question.addClass('lilac-locked');
             
-            // Keep answer selection enabled for reselection
-            $question.find('.wpProQuiz_questionInput').prop('disabled', false);
+            // Disable answer selection until hint is viewed
+            $question.find('.wpProQuiz_questionInput').prop('disabled', true);
             $question.find('.wpProQuiz_questionListItem').css({
-                'pointer-events': 'auto',
-                'cursor': 'pointer',
-                'opacity': '1'
+                'pointer-events': 'none',
+                'cursor': 'not-allowed',
+                'opacity': '0.7'
             });
             
-            // Keep check button visible and enabled
+            // Hide check button until hint is viewed
             $question.find('.wpProQuiz_button[name="check"]').css({
-                'display': 'inline-block',
-                'visibility': 'visible',
-                'opacity': '1'
-            }).prop('disabled', false);
+                'display': 'none'
+            });
             
             // Remove any existing hint messages to prevent duplicates
             $question.find('.lilac-hint-message').remove();
@@ -287,9 +285,9 @@ if (typeof jQuery === 'undefined') {
             // Clear any existing content in response area to prevent duplicates
             $responseArea.empty();
             
-            // Add wrong answer message without the orange hint button
+            // Add wrong answer message that requires hint viewing
             const $hintMessage = $('<div class="lilac-hint-message" style="background-color: rgb(255, 243, 224); border: 1px solid rgb(255, 152, 0); border-radius: 4px; padding: 10px 15px; margin: 15px 0px; text-align: right; font-size: 16px; direction: rtl;">' +
-                '<span>תשובה שגויה! לחץ על הרמז הכחול למטה לקבלת עזרה</span>' +
+                '<span>תשובה שגויה! חובה לצפות ברמז לפני בחירת תשובה נוספת</span>' +
             '</div>');
             $responseArea.append($hintMessage);
             
@@ -307,19 +305,16 @@ if (typeof jQuery === 'undefined') {
     }
 
     /**
-     * Handle hint button clicks - simplified
+     * Handle hint viewing - unlock question after viewing hint
      */
     function handleHintViewing($question) {
         console.log('[LilacQuiz] Hint clicked, showing modal and unlocking question');
         
-        // Show the hint modal FIRST
+        // Show hint modal
         showHintModal($question);
         
-        // Remove lock
+        // Remove lock to allow answer reselection
         $question.removeClass('lilac-locked');
-        
-        // Remove hint message
-        $question.find('.lilac-hint-message').remove();
         
         // Re-enable answer selection
         $question.find('.wpProQuiz_questionInput').prop('disabled', false);
@@ -329,8 +324,15 @@ if (typeof jQuery === 'undefined') {
             'opacity': '1'
         });
         
-        // Clear any previous selection to ensure fresh start
-        $question.find('.wpProQuiz_questionInput').prop('checked', false);
+        // Show check button again
+        $question.find('.wpProQuiz_button[name="check"]').css({
+            'display': 'inline-block',
+            'visibility': 'visible',
+            'opacity': '1'
+        }).prop('disabled', false);
+        
+        // Remove hint message
+        $question.find('.lilac-hint-message').remove();
     }
 
     /**
@@ -456,6 +458,17 @@ function setupEarlyAnswerDetection($question) {
                 const classes = $target.attr('class') || '';
                 
                 console.log('[LilacQuiz] Class change:', mutation.target.tagName, classes);
+                
+                // Block interactions on locked questions - force hint viewing
+                $(document).on('click', 
+                    '.lilac-locked .wpProQuiz_questionListItem label, ' +
+                    '.lilac-locked .wpProQuiz_questionInput', 
+                function(e) {
+                    console.log(' [LilacQuiz] Blocked - must view hint first');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                });
                 
                 if ($target.hasClass('wpProQuiz_questionListItem')) {
                     if (classes.includes('wpProQuiz_answerCorrect')) {
@@ -736,17 +749,23 @@ function setupEarlyAnswerDetection($question) {
                     </div>
                 `);
                 
-                // Add click handler to show hint
+                // Add click handler to show hint and unlock if needed
                 $hintBox.on('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
                     console.log('[LilacQuiz] Hint box clicked for question', index + 1);
                     
                     // Hide any existing native hint popups first
-                    $question.find('.wpProQuiz_tipp').hide();
+                    $('.wpProQuiz_tipp').hide();
                     
-                    // Show our custom modal instead of triggering native hint
-                    showHintModal($question);
+                    // If question is locked, unlock it after viewing hint
+                    if ($question.hasClass('lilac-locked')) {
+                        console.log('[LilacQuiz] Question is locked, unlocking after hint viewing');
+                        handleHintViewing($question);
+                    } else {
+                        // Just show the modal if not locked
+                        showHintModal($question);
+                    }
                 });
                 
                 // Insert hint box at the bottom of the question
@@ -944,7 +963,7 @@ function setupEarlyAnswerDetection($question) {
             </div>
         `);
         
-        // Add click handler to show hint
+        // Add click handler to show hint and unlock if needed
         $hintBox.on('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -953,8 +972,14 @@ function setupEarlyAnswerDetection($question) {
             // Hide any existing native hint popups first
             $('.wpProQuiz_tipp').hide();
             
-            // Show our custom modal instead of triggering native hint
-            showHintModal($question);
+            // If question is locked, unlock it after viewing hint
+            if ($question.hasClass('lilac-locked')) {
+                console.log('[LilacQuiz] Question is locked, unlocking after hint viewing');
+                handleHintViewing($question);
+            } else {
+                // Just show the modal if not locked
+                showHintModal($question);
+            }
         });
         
         // Insert hint box at the bottom of the question
@@ -1058,10 +1083,10 @@ function setupEarlyAnswerDetection($question) {
             const $listItem = $(this);
             const $question = $listItem.closest('.wpProQuiz_listItem');
             
-            // Allow processing even if question was previously locked
-            // if ($question.hasClass('lilac-locked')) {
-            //     return false;
-            // }
+            // Don't process if question is locked - force hint viewing first
+            if ($question.hasClass('lilac-locked')) {
+                return false;
+            }
             
             // Don't process if clicking directly on the radio button (let it handle naturally)
             if ($(e.target).is('input[type="radio"]')) {
