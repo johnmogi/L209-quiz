@@ -75,17 +75,20 @@ function lilac_parse_answer_data($answer_data) {
                     }
                     
                 } catch (Exception $e) {
-                    // Fallback: parse the serialized string directly
-                    $serialized_str = serialize($answer_obj);
-                    
-                    // Extract answer text using regex
-                    if (preg_match('/s:10:".*?_answer";s:\d+:"([^"]*)"/', $serialized_str, $matches)) {
+                    // Fallback: parse the original serialized string directly
+                    // Extract answer text using regex from the original data
+                    if (preg_match('/s:10:".*?_answer";s:\d+:"([^"]*)"/', $answer_data, $matches)) {
                         $answer_text = $matches[1];
                     }
                     
                     // Extract correct flag using regex
-                    if (preg_match('/s:11:".*?_correct";b:([01])/', $serialized_str, $matches)) {
+                    if (preg_match('/s:11:".*?_correct";b:([01])/', $answer_data, $matches)) {
                         $is_correct = ($matches[1] === '1');
+                    }
+                    
+                    // If still no text, try a simpler approach
+                    if (empty($answer_text)) {
+                        $answer_text = "Answer " . ($index + 1) . " (parsing failed)";
                     }
                 }
                 
