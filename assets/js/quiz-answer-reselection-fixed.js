@@ -45,6 +45,33 @@
     
     // Initialize on document ready
     $(document).ready(function() {
+        // SIMPLE TEST: Add a bright red test box
+        const $testBox = $(`
+            <div id="lilac-test-box-fixed" style="
+                background: red !important;
+                color: white !important;
+                padding: 20px !important;
+                margin: 20px 0 !important;
+                font-size: 24px !important;
+                font-weight: bold !important;
+                text-align: center !important;
+                border: 5px solid black !important;
+                z-index: 99999 !important;
+                position: relative !important;
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                width: 100% !important;
+            ">
+                🔴 TEST BOX FROM FIXED FILE - CAN YOU SEE THIS? 🔴
+            </div>
+        `);
+        
+        // Try multiple injection points
+        $('body').prepend($testBox);
+        $('.wpProQuiz_listItem').first().prepend($testBox.clone());
+        console.log('[FIXED FILE] Added test boxes');
+        
         initQuizAnswerReselection();
     });
     
