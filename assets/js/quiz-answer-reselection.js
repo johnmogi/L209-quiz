@@ -328,10 +328,13 @@ if (typeof jQuery === 'undefined') {
 
             if (!$selected.length) return;
 
-            console.log('[LilacQuiz] Check button clicked, waiting for quiz calculation...');
+            console.log('[LilacQuiz] Check button clicked, starting dual detection system...');
+            
+            // Start early detection system (MutationObserver)
+            setupEarlyAnswerDetection($question);
             
             // Let the native quiz handle the check first
-            // Then watch for the result
+            // Then watch for the result with enhanced detection
             watchForAnswerResult($question);
         });
 
@@ -380,21 +383,100 @@ if (typeof jQuery === 'undefined') {
         $(document).on('click', '.lilac-force-next', function(e) {
             e.preventDefault();
             const $question = $(this).closest('.wpProQuiz_listItem');
-            $question.find('.wpProQuiz_button[name="next"]').trigger('click');
+            const $nextButton = $question.find('.wpProQuiz_button[name="next"]');
+            if ($nextButton.length) {
+                $nextButton.trigger('click');
+            }
         });
     }
 
     /**
-     * Watch for answer result after quiz calculation
+     * Early detection system - monitors DOM changes to catch answer results before LearnDash fully processes them
+     */
+    function setupEarlyAnswerDetection($question) {
+        const questionElement = $question[0];
+        if (!questionElement) return;
+        
+        // Create MutationObserver to watch for DOM changes
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                // Check for class changes on answer elements
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const $target = $(mutation.target);
+                    
+                    // Check if this is an answer wrapper getting result classes
+                    if ($target.hasClass('wpProQuiz_questionListItem')) {
+                        if ($target.hasClass('wpProQuiz_answerCorrect') || $target.hasClass('wpProQuiz_answerCorrectIncomplete')) {
+                            console.log('[LilacQuiz] Early detection: Correct answer via class mutation');
+                            observer.disconnect();
+                            handleAnswerResult($question, true);
+                            return;
+                        } else if ($target.hasClass('wpProQuiz_answerIncorrect')) {
+                            console.log('[LilacQuiz] Early detection: Incorrect answer via class mutation');
+                            observer.disconnect();
+                            handleAnswerResult($question, false);
+                            return;
+                        }
+                    }
+                }
+                
+                // Check for added nodes (status elements)
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            const $node = $(node);
+                            
+                            // Check if status element was added
+                            if ($node.hasClass('ld-quiz-question-item__status') || $node.find('.ld-quiz-question-item__status').length) {
+                                const $correctStatus = $node.find('.ld-quiz-question-item__status--correct');
+                                const $incorrectStatus = $node.find('.ld-quiz-question-item__status--incorrect');
+                                
+                                if ($correctStatus.length) {
+                                    console.log('[LilacQuiz] Early detection: Status element added - correct');
+                                    observer.disconnect();
+                                    handleAnswerResult($question, true);
+                                    return;
+                                } else if ($incorrectStatus.length) {
+                                    console.log('[LilacQuiz] Early detection: Status element added - incorrect');
+                                    observer.disconnect();
+                                    handleAnswerResult($question, false);
+                                    return;
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        });
+        
+        // Start observing the question element and its children
+        observer.observe(questionElement, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class']
+        });
+        
+        // Cleanup observer after 5 seconds
+        setTimeout(function() {
+            observer.disconnect();
+        }, 5000);
+        
+        return observer;
+    }
+
+    /**
+     * Watch for answer result after check button is clicked
+     * Enhanced with backup detection system for LearnDash status elements
      */
     function watchForAnswerResult($question) {
         let checkCount = 0;
-        const maxChecks = 30; // Increased to 3 seconds
+        const maxChecks = 30; // 3 seconds max
         
         const checkInterval = setInterval(function() {
             checkCount++;
             
-            // First priority: Look for answer state classes
+            // First priority: Check selected answer for result classes
             const $selected = $question.find('.wpProQuiz_questionInput:checked');
             if ($selected.length) {
                 const $wrapper = $selected.closest('.wpProQuiz_questionListItem');
@@ -405,7 +487,26 @@ if (typeof jQuery === 'undefined') {
                     console.log('[LilacQuiz] Checking classes:', classes);
                 }
                 
-                // Check if quiz has applied result classes
+                // BACKUP SYSTEM: Check for new LearnDash status elements first
+                const $statusElement = $selected.closest('label').find('.ld-quiz-question-item__status');
+                if ($statusElement.length) {
+                    const $correctStatus = $statusElement.find('.ld-quiz-question-item__status--correct');
+                    const $incorrectStatus = $statusElement.find('.ld-quiz-question-item__status--incorrect');
+                    
+                    if ($correctStatus.is(':visible') || $correctStatus.css('display') !== 'none') {
+                        console.log('[LilacQuiz] Correct answer detected via NEW status element!');
+                        clearInterval(checkInterval);
+                        handleAnswerResult($question, true);
+                        return;
+                    } else if ($incorrectStatus.is(':visible') || $incorrectStatus.css('display') !== 'none') {
+                        console.log('[LilacQuiz] Incorrect answer detected via NEW status element!');
+                        clearInterval(checkInterval);
+                        handleAnswerResult($question, false);
+                        return;
+                    }
+                }
+                
+                // Original system: Check if quiz has applied result classes
                 if ($wrapper.hasClass('wpProQuiz_answerCorrect') || 
                     $wrapper.hasClass('wpProQuiz_answerCorrectIncomplete')) {
                     console.log('[LilacQuiz] Correct answer detected! Classes:', classes);
@@ -452,18 +553,46 @@ if (typeof jQuery === 'undefined') {
                 return;
             }
             
+            // Fourth priority: Check for any visible status elements (backup system)
+            const $allStatusElements = $question.find('.ld-quiz-question-item__status');
+            if ($allStatusElements.length) {
+                const $visibleCorrect = $allStatusElements.find('.ld-quiz-question-item__status--correct:visible');
+                const $visibleIncorrect = $allStatusElements.find('.ld-quiz-question-item__status--incorrect:visible');
+                
+                if ($visibleCorrect.length) {
+                    console.log('[LilacQuiz] Backup detection: Correct answer found via visible status');
+                    clearInterval(checkInterval);
+                    handleAnswerResult($question, true);
+                    return;
+                } else if ($visibleIncorrect.length) {
+                    console.log('[LilacQuiz] Backup detection: Incorrect answer found via visible status');
+                    clearInterval(checkInterval);
+                    handleAnswerResult($question, false);
+                    return;
+                }
+            }
+            
             if (checkCount >= maxChecks) {
                 console.log('[LilacQuiz] Timeout waiting for answer result after 3 seconds');
                 clearInterval(checkInterval);
                 
-                // As a fallback, check one more time for any answer indicators
+                // Enhanced fallback: Check both old classes AND new status elements
                 const $anyIncorrect = $question.find('.wpProQuiz_answerIncorrect');
                 const $anyCorrect = $question.find('.wpProQuiz_answerCorrect, .wpProQuiz_answerCorrectIncomplete');
                 
-                if ($anyIncorrect.length) {
+                // Also check status elements as final fallback
+                const $finalStatusCheck = $question.find('.ld-quiz-question-item__status');
+                const $finalCorrect = $finalStatusCheck.find('.ld-quiz-question-item__status--correct');
+                const $finalIncorrect = $finalStatusCheck.find('.ld-quiz-question-item__status--incorrect');
+                
+                if ($anyIncorrect.length || $finalIncorrect.length) {
+                    console.log('[LilacQuiz] Final fallback: Incorrect answer detected');
                     handleAnswerResult($question, false);
-                } else if ($anyCorrect.length) {
+                } else if ($anyCorrect.length || $finalCorrect.length) {
+                    console.log('[LilacQuiz] Final fallback: Correct answer detected');
                     handleAnswerResult($question, true);
+                } else {
+                    console.log('[LilacQuiz] No answer result detected after timeout - system may need manual intervention');
                 }
             }
         }, 100);
