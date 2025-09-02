@@ -25,6 +25,9 @@ define('LILAC_QUIZ_SIDEBAR_PLUGIN_URL', plugin_dir_url(__FILE__));
 // Include the main class
 require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'includes/class-quiz-sidebar.php';
 
+// Include quiz debug functionality
+require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'quiz-debug.php';
+
 // Initialize the plugin
 function lilac_quiz_sidebar_init() {
     // Ensure LearnDash is active
