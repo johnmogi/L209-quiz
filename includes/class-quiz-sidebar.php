@@ -393,7 +393,7 @@ class Lilac_Quiz_Sidebar {
                 $script_handle = 'lilac-quiz-answer-reselection';
                 wp_register_script(
                     $script_handle,
-                    LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-answer-reselection.js',
+                    LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-answer-reselection-fixed.js',
                     array('jquery'),
                     LILAC_QUIZ_SIDEBAR_VERSION,
                     true
@@ -437,7 +437,7 @@ class Lilac_Quiz_Sidebar {
                             
                             // Try to load it manually
                             const script = document.createElement("script");
-                            script.src = "' . LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-answer-reselection.js?ver=' . LILAC_QUIZ_SIDEBAR_VERSION . '";
+                            script.src = "' . LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-answer-reselection-fixed.js?ver=' . LILAC_QUIZ_SIDEBAR_VERSION . '";
                             script.onload = function() {
                                 console.log("Successfully loaded quiz script manually!");
                             };

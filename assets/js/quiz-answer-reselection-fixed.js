@@ -43,15 +43,28 @@
         }
     };
     
-    // Initialize on document ready
+    // Initialize when DOM is ready
     $(document).ready(function() {
+        log.info('DOM ready, starting initialization');
         initQuizAnswerReselection();
     });
     
-    // Also initialize after a short delay to catch dynamically loaded content
+    // Also initialize after a delay to catch dynamically loaded content
     setTimeout(function() {
         initQuizAnswerReselection();
     }, config.observerDelay);
+    
+    // Immediate execution for quiz-enforce-hint pages (after function is defined)
+    $(document).ready(function() {
+        if ($('body').hasClass('quiz-enforce-hint')) {
+            log.info('Quiz enforce hint detected, immediate injection on ready');
+            setTimeout(function() {
+                if (typeof injectInitialHintBoxes === 'function') {
+                    injectInitialHintBoxes();
+                }
+            }, 100);
+        }
+    });
     
     /**
      * Initialize the quiz answer reselection functionality
@@ -59,17 +72,25 @@
     function initQuizAnswerReselection() {
         log.info('Initializing hint enforcement module');
         
+        // Check if hint enforcement is active via body class
+        if (!$('body').hasClass('quiz-enforce-hint')) {
+            log.info('Hint enforcement not active - quiz-enforce-hint class not found');
+            return;
+        }
+        
+        log.info('Hint enforcement active - proceeding with initialization');
+        
         // Remove any debug containers that may interfere
         removeDebugContainers();
         
         // Make sure inputs are always enabled
         enableAllInputs();
         
+        // Inject initial hint boxes immediately
+        injectInitialHintBoxes();
+        
         // Set up event handlers
         setupEventHandlers();
-        
-        // Show initial hint boxes for all questions
-        showInitialHintBoxes();
         
         // Perform initial setup for questions
         $('.wpProQuiz_listItem').each(setupQuestion);
@@ -233,6 +254,28 @@
             // Make sure inputs are enabled
             enableInputsForQuestion($question);
             
+            // Check if initial hint message exists and update it
+            const $existingHintMessage = $question.find('.lilac-hint-message');
+            if ($existingHintMessage.length) {
+                // Update existing hint message to show incorrect answer styling
+                $existingHintMessage.removeClass('lilac-initial-hint').html(
+                    '<span style="font-weight:bold;color:#e74c3c;">❌ תשובה שגויה!</span>' +
+                    '<span>לחץ על רמז לקבלת עזרה</span>' +
+                    '<button type="button" class="lilac-force-hint" style="display: inline-block; visibility: visible; background-color: rgb(255, 152, 0); color: white; font-weight: bold; border: 2px solid rgb(230, 126, 34); border-radius: 4px; padding: 8px 24px; cursor: pointer; font-size: 16px; margin-right: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 3px 5px;">רמז</button>'
+                ).css({
+                    'background-color': 'rgb(255, 243, 224)',
+                    'border': '1px solid rgb(255, 152, 0)'
+                });
+                
+                // Re-attach click handler for updated button
+                $question.find('.lilac-force-hint').off('click').on('click', function() {
+                    const $tipBtn = $question.find('.wpProQuiz_TipButton, .wpProQuiz_hint');
+                    if ($tipBtn.length) {
+                        $tipBtn.click();
+                    }
+                });
+            }
+            
             // If there's a hint and it hasn't been viewed, highlight it
             if (hasHint && !hintViewed) {
                 highlightHintButton($question);
@@ -349,54 +392,70 @@
     }
     
     /**
-     * Show initial hint boxes for all questions from the start
+     * Inject initial hint boxes immediately for all questions
      */
-    function showInitialHintBoxes() {
-        log.info('Showing initial hint boxes for all questions');
+    function injectInitialHintBoxes() {
+        log.info('Injecting initial hint boxes for all questions');
         
-        $('.wpProQuiz_listItem').each(function() {
+        // Debug: Log current state
+        log.info('Body classes:', $('body').attr('class'));
+        log.info('Questions found:', $('.wpProQuiz_listItem').length);
+        
+        $('.wpProQuiz_listItem').each(function(index) {
             const $question = $(this);
+            log.info(`Processing question ${index + 1}`);
             
-            // Skip if question already has a hint message or is already answered correctly
-            if ($question.find('.lilac-hint-message').length || 
-                $question.find('.wpProQuiz_answerCorrect').length) {
+            // Skip if question already has a hint message
+            if ($question.find('.lilac-hint-message').length) {
+                log.info(`Question ${index + 1} already has hint message, skipping`);
                 return;
             }
             
             // Check if question has hint content available
             const $hintContent = $question.find('.wpProQuiz_tipp, .wpProQuiz_TipButton, .wpProQuiz_hint');
+            log.info(`Question ${index + 1} hint elements found:`, $hintContent.length);
+            
             if (!$hintContent.length) {
-                log.info('No hint content found for question, skipping');
+                log.info(`No hint content found for question ${index + 1}, skipping`);
                 return;
             }
             
-            // Create response area if it doesn't exist
+            // Find or create response area
             let $responseArea = $question.find('.wpProQuiz_response');
             if (!$responseArea.length) {
-                $responseArea = $('<div class="wpProQuiz_response"></div>');
+                log.info(`Creating response area for question ${index + 1}`);
+                $responseArea = $('<div class="wpProQuiz_response" style="display: block;"></div>');
                 $question.find('.wpProQuiz_questionList').after($responseArea);
+            } else {
+                // Make sure response area is visible
+                $responseArea.show().css('display', 'block');
             }
             
-            // Add initial hint message (neutral styling since no wrong answer yet)
-            const $initialHintMessage = $('<div class="lilac-hint-message lilac-initial-hint" style="background-color: rgb(240, 248, 255); border: 1px solid rgb(33, 150, 243); border-radius: 4px; padding: 10px 15px; margin: 15px 0px; text-align: right; font-size: 16px; display: flex; align-items: center; justify-content: space-between; direction: rtl;">' +
+            // Add initial hint message with debug styling
+            const $initialHintMessage = $('<div class="lilac-hint-message lilac-initial-hint" style="background-color: rgb(240, 248, 255) !important; border: 2px solid rgb(33, 150, 243) !important; border-radius: 4px; padding: 15px; margin: 15px 0px; text-align: right; font-size: 16px; display: flex !important; align-items: center; justify-content: space-between; direction: rtl; z-index: 9999; position: relative;">' +
                 '<span style="font-weight:bold;color:#2196F3;">💡 רמז זמין</span>' +
                 '<span>לחץ על רמז לקבלת עזרה</span>' +
-                '<button type="button" class="lilac-force-hint" style="display: inline-block; visibility: visible; background-color: rgb(33, 150, 243); color: white; font-weight: bold; border: 2px solid rgb(25, 118, 210); border-radius: 4px; padding: 8px 24px; cursor: pointer; font-size: 16px; margin-right: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 3px 5px;">רמז</button>' +
+                '<button type="button" class="lilac-force-hint" style="display: inline-block !important; visibility: visible !important; background-color: rgb(33, 150, 243) !important; color: white !important; font-weight: bold; border: 2px solid rgb(25, 118, 210); border-radius: 4px; padding: 8px 24px; cursor: pointer; font-size: 16px; margin-right: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 3px 5px;">רמז</button>' +
                 '</div>');
             
             // Prepend the message to the response area
             $responseArea.prepend($initialHintMessage);
             
             // Make the hint button work
-            $question.find('.lilac-force-hint').on('click', function() {
+            $question.find('.lilac-force-hint').off('click').on('click', function() {
+                log.info(`Hint button clicked for question ${index + 1}`);
                 const $tipBtn = $question.find('.wpProQuiz_TipButton, .wpProQuiz_hint');
                 if ($tipBtn.length) {
                     $tipBtn.click();
+                } else {
+                    log.info('No tip button found to click');
                 }
             });
             
-            log.info('Added initial hint box for question');
+            log.info(`Added initial hint box for question ${index + 1}`);
         });
+        
+        log.info('Finished injecting initial hint boxes');
     }
 
     /**
