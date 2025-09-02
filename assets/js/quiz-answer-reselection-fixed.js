@@ -349,6 +349,57 @@
     }
     
     /**
+     * Show initial hint boxes for all questions from the start
+     */
+    function showInitialHintBoxes() {
+        log.info('Showing initial hint boxes for all questions');
+        
+        $('.wpProQuiz_listItem').each(function() {
+            const $question = $(this);
+            
+            // Skip if question already has a hint message or is already answered correctly
+            if ($question.find('.lilac-hint-message').length || 
+                $question.find('.wpProQuiz_answerCorrect').length) {
+                return;
+            }
+            
+            // Check if question has hint content available
+            const $hintContent = $question.find('.wpProQuiz_tipp, .wpProQuiz_TipButton, .wpProQuiz_hint');
+            if (!$hintContent.length) {
+                log.info('No hint content found for question, skipping');
+                return;
+            }
+            
+            // Create response area if it doesn't exist
+            let $responseArea = $question.find('.wpProQuiz_response');
+            if (!$responseArea.length) {
+                $responseArea = $('<div class="wpProQuiz_response"></div>');
+                $question.find('.wpProQuiz_questionList').after($responseArea);
+            }
+            
+            // Add initial hint message (neutral styling since no wrong answer yet)
+            const $initialHintMessage = $('<div class="lilac-hint-message lilac-initial-hint" style="background-color: rgb(240, 248, 255); border: 1px solid rgb(33, 150, 243); border-radius: 4px; padding: 10px 15px; margin: 15px 0px; text-align: right; font-size: 16px; display: flex; align-items: center; justify-content: space-between; direction: rtl;">' +
+                '<span style="font-weight:bold;color:#2196F3;">💡 רמז זמין</span>' +
+                '<span>לחץ על רמז לקבלת עזרה</span>' +
+                '<button type="button" class="lilac-force-hint" style="display: inline-block; visibility: visible; background-color: rgb(33, 150, 243); color: white; font-weight: bold; border: 2px solid rgb(25, 118, 210); border-radius: 4px; padding: 8px 24px; cursor: pointer; font-size: 16px; margin-right: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 3px 5px;">רמז</button>' +
+                '</div>');
+            
+            // Prepend the message to the response area
+            $responseArea.prepend($initialHintMessage);
+            
+            // Make the hint button work
+            $question.find('.lilac-force-hint').on('click', function() {
+                const $tipBtn = $question.find('.wpProQuiz_TipButton, .wpProQuiz_hint');
+                if ($tipBtn.length) {
+                    $tipBtn.click();
+                }
+            });
+            
+            log.info('Added initial hint box for question');
+        });
+    }
+
+    /**
      * Remove any debug containers that might interfere with the quiz
      */
     function removeDebugContainers() {
