@@ -440,9 +440,25 @@
                 const nextButton = existingHintBox.querySelector('.lilac-next-question');
                 if (nextButton) {
                     nextButton.addEventListener('click', () => {
+                        // Find and click the original quiz next button
+                        const originalNext = document.querySelector('input[name="next"]');
+                        if (originalNext) {
+                            log.info('➡️ Clicking original next button');
+                            originalNext.click();
+                        } else {
+                            // If no next button, look for end quiz button (last question)
+                            const endButton = document.querySelector('input[name="endQuizSummary"]');
+                            if (endButton) {
+                                log.info('🏁 Clicking end quiz button (last question)');
+                                endButton.click();
+                            } else {
+                                log.info('⚠️ No navigation button found');
+                            }
+                        }
+                        
                         state.hintViewed = false;
                         state.canProceed = false;
-                        log.info('➡️ Moving to next question - state reset');
+                        log.info('➡️ State reset for next question');
                     });
                 }
                 
