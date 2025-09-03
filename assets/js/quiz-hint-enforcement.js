@@ -476,6 +476,22 @@
                         showHintModal();
                         state.hintViewed = true;
                         log.info('💡 Hint viewed');
+                        
+                        // Enable answer inputs after hint is viewed
+                        setTimeout(() => {
+                            enableAnswerInputs();
+                            
+                            // Update hint message to show inputs are enabled
+                            existingHintBox.style.background = '#fff3cd !important';
+                            existingHintBox.style.borderColor = '#ffc107 !important';
+                            existingHintBox.innerHTML = `
+                                <div style="display: flex; align-items: center; gap: 10px; color: #856404; font-weight: bold; font-size: 16px; width: 100%;">
+                                    <span style="color: #28a745; font-size: 18px;">✓</span>
+                                    <span>רמז נצפה! כעת ניתן לבחור תשובה מחדש</span>
+                                </div>
+                            `;
+                            log.info('✅ Inputs re-enabled after hint viewing');
+                        }, 500);
                     });
                 }
                 
