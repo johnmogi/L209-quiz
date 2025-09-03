@@ -208,11 +208,15 @@
     function handleIncorrectAnswer($question) {
         log.info('❌ Incorrect answer detected');
         
-        // Keep hint message visible (it's already shown)
-        // The hint message stays as is for incorrect answers
+        // Disable all answer inputs until hint is viewed
+        disableAnswerInputs($question);
+        
+        // Update hint message to show enforcement
+        updateHintMessageForEnforcement();
         
         // Disable progression until hint is viewed
         state.canProceed = false;
+        state.hintViewed = false;
         
         // Hide next button
         disableNextButton();
@@ -279,19 +283,25 @@
             ">רמז</button>
         `;
         
-        // Add to page - position relative to quiz content, not fixed to viewport bottom
+        // Add to page - ensure it's fully visible
         const quizContainer = document.querySelector('.wpProQuiz_content, .quiz-content, .learndash-quiz-content, .wpProQuiz_quiz');
         if (quizContainer) {
-            // Position relative to quiz container
+            // Position relative to quiz container with more space
             hintMessage.style.position = 'absolute';
-            hintMessage.style.bottom = '-80px';
+            hintMessage.style.bottom = '-100px';
             hintMessage.style.left = '50%';
             hintMessage.style.transform = 'translateX(-50%)';
+            hintMessage.style.zIndex = '10000';
             quizContainer.style.position = 'relative';
+            quizContainer.style.marginBottom = '120px'; // Add space to prevent cutoff
             quizContainer.appendChild(hintMessage);
         } else {
-            // Fallback to fixed positioning but higher up
-            hintMessage.style.bottom = '120px';
+            // Fallback to fixed positioning higher up
+            hintMessage.style.position = 'fixed';
+            hintMessage.style.bottom = '150px';
+            hintMessage.style.left = '50%';
+            hintMessage.style.transform = 'translateX(-50%)';
+            hintMessage.style.zIndex = '10000';
             document.body.appendChild(hintMessage);
         }
         
@@ -301,7 +311,13 @@
             hintButton.addEventListener('click', () => {
                 // Show hint content in modal instead of clicking actual hint button
                 showHintModal();
-                log.info('💡 Hint button clicked - showing modal');
+                
+                // Mark hint as viewed and re-enable inputs
+                state.hintViewed = true;
+                enableAnswerInputs();
+                updateHintMessageAfterViewing();
+                
+                log.info('💡 Hint viewed - inputs re-enabled');
             });
         }
         
@@ -500,6 +516,138 @@
      */
     function disableNextButton() {
         $('.wpProQuiz_button[name="next"]').hide().prop('disabled', true);
+    }
+    
+    /**
+     * Disable answer inputs until hint is viewed
+     */
+    function disableAnswerInputs($question) {
+        const allQuestions = $question || $('.wpProQuiz_listItem');
+        allQuestions.find('.wpProQuiz_questionInput').prop('disabled', true)
+            .css({
+                'pointer-events': 'none',
+                'opacity': '0.5',
+                'cursor': 'not-allowed'
+            });
+        
+        allQuestions.find('.wpProQuiz_questionListItem label').css({
+            'pointer-events': 'none',
+            'opacity': '0.5',
+            'cursor': 'not-allowed'
+        });
+        
+        log.info('🚫 Answer inputs disabled - hint must be viewed first');
+    }
+    
+    /**
+     * Enable answer inputs after hint is viewed
+     */
+    function enableAnswerInputs($question) {
+        const allQuestions = $question || $('.wpProQuiz_listItem');
+        allQuestions.find('.wpProQuiz_questionInput').prop('disabled', false)
+            .css({
+                'pointer-events': 'auto',
+                'opacity': '1',
+                'cursor': 'pointer'
+            });
+        
+        allQuestions.find('.wpProQuiz_questionListItem label').css({
+            'pointer-events': 'auto',
+            'opacity': '1',
+            'cursor': 'pointer'
+        });
+        
+        log.info('✅ Answer inputs re-enabled after hint viewing');
+    }
+    
+    /**
+     * Update hint message to show enforcement notification
+     */
+    function updateHintMessageForEnforcement() {
+        const hintMessage = document.getElementById('lilac-hint-message');
+        if (hintMessage) {
+            hintMessage.innerHTML = `
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    color: #856404;
+                    font-weight: bold;
+                    font-size: 16px;
+                ">
+                    <span style="color: #dc3545; font-size: 18px;">🚫</span>
+                    <span>תשובה שגויה! חובה לצפות ברמז לפני המשך</span>
+                </div>
+                <button class="lilac-force-hint" style="
+                    background: #dc3545;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 10px 20px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: background-color 0.3s;
+                    min-width: 80px;
+                    animation: pulse 1.5s infinite;
+                ">צפה ברמז</button>
+            `;
+            
+            // Re-add click handler
+            const hintButton = hintMessage.querySelector('.lilac-force-hint');
+            if (hintButton) {
+                hintButton.addEventListener('click', () => {
+                    showHintModal();
+                    state.hintViewed = true;
+                    enableAnswerInputs();
+                    updateHintMessageAfterViewing();
+                    log.info('💡 Hint viewed - inputs re-enabled');
+                });
+            }
+        }
+    }
+    
+    /**
+     * Update hint message after hint is viewed
+     */
+    function updateHintMessageAfterViewing() {
+        const hintMessage = document.getElementById('lilac-hint-message');
+        if (hintMessage) {
+            hintMessage.innerHTML = `
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    color: #155724;
+                    font-weight: bold;
+                    font-size: 16px;
+                ">
+                    <span style="color: #28a745; font-size: 18px;">✓</span>
+                    <span>רמז נצפה! כעת ניתן לבחור תשובה מחדש</span>
+                </div>
+                <button class="lilac-force-hint" style="
+                    background: #28a745;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 10px 20px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: background-color 0.3s;
+                    min-width: 80px;
+                ">רמז נוסף</button>
+            `;
+            
+            // Re-add click handler for additional hints
+            const hintButton = hintMessage.querySelector('.lilac-force-hint');
+            if (hintButton) {
+                hintButton.addEventListener('click', () => {
+                    showHintModal();
+                    log.info('💡 Additional hint viewed');
+                });
+            }
+        }
     }
     
     /**
