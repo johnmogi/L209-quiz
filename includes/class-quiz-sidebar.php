@@ -389,7 +389,9 @@ class Lilac_Quiz_Sidebar {
                     'nonce' => wp_create_nonce('lilac_quiz_sidebar_nonce')
                 ));
                 
-                // Enqueue JavaScript for hint enforcement with no dependencies
+                // OLD SCRIPT DISABLED - Using new hint enforcement system instead
+                // The new system is loaded via lilac_enqueue_question_detector() in main plugin file
+                /*
                 $script_handle = 'lilac-quiz-answer-reselection';
                 wp_register_script(
                     $script_handle,
@@ -407,7 +409,11 @@ class Lilac_Quiz_Sidebar {
                 
                 // Enqueue the script
                 wp_enqueue_script($script_handle);
+                */
                 
+                // OLD SCRIPT LOADING CODE DISABLED
+                // The new hint enforcement system handles all functionality
+                /*
                 // Add error logging
                 add_action('wp_footer', function() use ($script_handle) {
                     echo '<script>
@@ -464,6 +470,7 @@ class Lilac_Quiz_Sidebar {
                     'console.log("Lilac Quiz: Answer Reselection script loaded successfully");',
                     'after'
                 );
+                */
             }
         }
     }

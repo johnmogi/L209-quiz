@@ -34,10 +34,20 @@ require_once plugin_dir_path(__FILE__) . 'includes/ajax-handlers.php';
 
 // Enqueue the safe detector script
 function lilac_enqueue_question_detector() {
+    // Enqueue the safe detector script
     wp_enqueue_script(
         'quiz-question-detector',
         plugin_dir_url(__FILE__) . 'assets/js/quiz-question-detector-safe.js',
         array('jquery'),
+        '1.0.0',
+        true
+    );
+    
+    // Enqueue the hint enforcement script
+    wp_enqueue_script(
+        'quiz-hint-enforcement',
+        plugin_dir_url(__FILE__) . 'assets/js/quiz-hint-enforcement.js',
+        array('jquery', 'quiz-question-detector'),
         '1.0.0',
         true
     );
