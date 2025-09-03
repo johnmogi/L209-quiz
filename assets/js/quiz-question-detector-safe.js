@@ -294,6 +294,46 @@
         updateDisplay();
         logToFooter('🔍 Safe quiz detector initialized', '#00ff00');
         
+        // IMMEDIATE ANSWER FETCHING - Smart retry system
+        let fetchAttempts = 0;
+        let fetchSuccess = false;
+        const maxAttempts = 3;
+        
+        function smartFetch() {
+            if (fetchSuccess || fetchAttempts >= maxAttempts) {
+                return;
+            }
+            
+            fetchAttempts++;
+            const quizIds = detectQuizIds();
+            const questionIds = detectQuestionId();
+            
+            if ((quizIds.proQuizId || quizIds.learnDashId) && (questionIds.proQuizId || questionIds.postQuestionId)) {
+                logToFooter(`🎯 Smart fetch attempt ${fetchAttempts}: Quiz:${quizIds.proQuizId || quizIds.learnDashId} Q:${questionIds.proQuizId || questionIds.postQuestionId}`, '#00ff00');
+                
+                fetchCorrectAnswers(quizIds.proQuizId || quizIds.learnDashId, questionIds.proQuizId || questionIds.postQuestionId)
+                    .then(result => {
+                        if (result) {
+                            fetchSuccess = true;
+                            logToFooter(`✅ Answer fetch completed successfully!`, '#00ff00');
+                        }
+                    });
+            } else {
+                logToFooter(`⏳ Attempt ${fetchAttempts}: Waiting for quiz elements...`, '#ffaa00');
+                
+                // Quick retry if elements not ready
+                if (fetchAttempts < maxAttempts) {
+                    setTimeout(smartFetch, 800);
+                }
+            }
+        }
+        
+        // Start smart fetching after a short delay
+        setTimeout(() => {
+            logToFooter('🚀 Starting smart answer fetch...', '#ffff00');
+            smartFetch();
+        }, 300);
+        
         // Add click listener for manual scanning
         document.addEventListener('click', (e) => {
             if (e.target.matches('input[type="radio"], input[type="checkbox"], button, .wpProQuiz_button')) {
