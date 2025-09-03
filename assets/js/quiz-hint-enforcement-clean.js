@@ -12,7 +12,7 @@
     const config = {
         debug: true,
         enforceHintDelay: 300,
-        observerDelay: 500,
+        observerDelay: 1000,
         tooltipText: 'טעית! להמשך חובה לקחת רמז!',
         answerDetection: true
     };
@@ -169,41 +169,44 @@
     }
     
     /**
-     * Show inline hint message under each quiz question
+     * Show inline hint message at bottom of quiz
      */
     function showInlineHintMessage() {
-        // Find all quiz questions
-        const questions = document.querySelectorAll('.wpProQuiz_listItem');
+        // Remove existing hint message
+        const existing = document.getElementById('lilac-hint-message');
+        if (existing) {
+            existing.remove();
+        }
         
-        questions.forEach((question, index) => {
-            // Remove existing hint message for this question
-            const existing = question.querySelector('.lilac-hint-message');
-            if (existing) {
-                existing.remove();
-            }
-            
-            // Create hint message for this question
-            const hintMessage = document.createElement('div');
-            hintMessage.className = 'lilac-hint-message';
-            hintMessage.style.cssText = 'background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px 20px; display: flex; align-items: center; gap: 15px; direction: rtl; text-align: right; font-family: Arial, sans-serif; margin: 15px 0; width: 100%; box-sizing: border-box;';
-            
-            hintMessage.innerHTML = '<div style="display: flex; align-items: center; gap: 10px; color: #856404; font-weight: bold; font-size: 16px;"><span style="color: #dc3545; font-size: 18px;">❌</span><span>תשובה שגויה! לחץ על רמז לקבלת עזרה</span></div><button class="lilac-force-hint" style="background: #ffc107; color: #212529; border: none; border-radius: 6px; padding: 10px 20px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; min-width: 80px;">רמז</button>';
-            
-            // Add click handler for hint button
-            const hintButton = hintMessage.querySelector('.lilac-force-hint');
-            if (hintButton) {
-                hintButton.addEventListener('click', () => {
-                    showHintModal();
-                    state.hintViewed = true;
-                    log.info('💡 Hint viewed for question', index + 1);
-                });
-            }
-            
-            // Add hint message directly after the question
-            question.appendChild(hintMessage);
-        });
+        // Create hint message
+        const hintMessage = document.createElement('div');
+        hintMessage.id = 'lilac-hint-message';
+        hintMessage.className = 'lilac-hint-message';
+        hintMessage.style.cssText = 'background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px 20px; display: flex; align-items: center; gap: 15px; direction: rtl; text-align: right; font-family: Arial, sans-serif; margin: 20px auto; width: fit-content; max-width: 90%;';
         
-        log.info('📝 Inline hint messages displayed for', questions.length, 'questions');
+        hintMessage.innerHTML = '<div style="display: flex; align-items: center; gap: 10px; color: #856404; font-weight: bold; font-size: 16px;"><span style="color: #dc3545; font-size: 18px;">❌</span><span>תשובה שגויה! לחץ על רמז לקבלת עזרה</span></div><button class="lilac-force-hint" style="background: #ffc107; color: #212529; border: none; border-radius: 6px; padding: 10px 20px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; min-width: 80px;">רמז</button>';
+        
+        // Add click handler for hint button
+        const hintButton = hintMessage.querySelector('.lilac-force-hint');
+        if (hintButton) {
+            hintButton.addEventListener('click', () => {
+                showHintModal();
+                state.hintViewed = true;
+                enableAnswerInputs();
+                updateHintMessageAfterViewing();
+                log.info('💡 Hint viewed - inputs re-enabled');
+            });
+        }
+        
+        // Add to page
+        const quizContainer = document.querySelector('.wpProQuiz_content, .quiz-content, .learndash-quiz-content, .wpProQuiz_quiz');
+        if (quizContainer) {
+            quizContainer.appendChild(hintMessage);
+        } else {
+            document.body.appendChild(hintMessage);
+        }
+        
+        log.info('📝 Inline hint message displayed');
     }
     
     /**
@@ -339,210 +342,62 @@
         // Show initial hint message
         showInlineHintMessage();
         
+        log.info('✅ Question setup complete');
+    }
+    
+    /**
+     * Initialize hint enforcement
+     */
+    function initQuizHintEnforcement() {
+        log.info('🚀 Initializing quiz hint enforcement');
+        
+        // Setup existing questions
+        document.querySelectorAll('.wpProQuiz_listItem').forEach(setupQuestion);
+        
+        // Setup observer for dynamically added questions
+        setupObserver();
+        
         log.info('✅ Quiz hint enforcement initialized');
     }
     
     /**
-     * Disable answer inputs after wrong answer
+     * Set up a mutation observer to watch for dynamically added questions
      */
-    function disableAnswerInputs() {
-    const inputs = document.querySelectorAll('.wpProQuiz_questionListItem input[type="radio"], .wpProQuiz_questionListItem input[type="checkbox"]');
-    inputs.forEach(input => {
-        input.disabled = true;
-        input.style.opacity = '0.5';
-    });
-    log.info('🚫 Answer inputs disabled');
-    }
-    
-    /**
-     * Enable answer inputs after hint viewing
-     */
-    function enableAnswerInputs() {
-    const inputs = document.querySelectorAll('.wpProQuiz_questionListItem input[type="radio"], .wpProQuiz_questionListItem input[type="checkbox"]');
-    inputs.forEach(input => {
-        input.disabled = false;
-        input.style.opacity = '1';
-    });
-    log.info('✅ Answer inputs re-enabled');
-    }
-    
-    /**
-     * Update hint message after hint is viewed
-     */
-    function updateHintMessageAfterViewing() {
-    const hintMessage = document.getElementById('lilac-hint-message');
-    if (hintMessage) {
-        hintMessage.innerHTML = '<div style="display: flex; align-items: center; gap: 10px; color: #155724; font-weight: bold; font-size: 16px;"><span style="color: #28a745; font-size: 18px;">✓</span><span>רמז נצפה! כעת ניתן לבחור תשובה מחדש</span></div><button class="lilac-force-hint" style="background: #28a745; color: white; border: none; border-radius: 6px; padding: 10px 20px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; min-width: 80px;">רמז נוסף</button>';
-        
-        // Re-add click handler for additional hints
-        const hintButton = hintMessage.querySelector('.lilac-force-hint');
-        if (hintButton) {
-            hintButton.addEventListener('click', () => {
-                showHintModal();
-                log.info('💡 Additional hint viewed');
-            });
-        }
-        }
-    }
-    
-    /**
-     * Handle answer selection
-     */
-    function handleAnswerSelection(event) {
-        const selectedInput = event.target;
-        const selectedIndex = parseInt(selectedInput.value);
-        
-        log.info('🎯 Answer selected:', selectedIndex);
-        
-        // Find the question container and existing hint box
-        const questionContainer = selectedInput.closest('.wpProQuiz_listItem');
-        const existingHintBox = questionContainer?.querySelector('.lilac-hint-message');
-        
-        if (!existingHintBox) {
-            log.info('⚠️ No hint box found to update');
+    function setupObserver() {
+        if (!window.MutationObserver) {
+            log.error('MutationObserver not supported in this browser');
             return;
         }
         
-        // Add delay to ensure debugger data is current
-        setTimeout(() => {
-            // Check answer correctness
-            let isCorrect = checkAnswerFromDebuggerData(selectedIndex);
-            
-            // Fallback to DOM checking if debugger data unavailable
-            if (isCorrect === null) {
-                isCorrect = checkAnswerFromDOM();
-            }
-            
-            if (isCorrect === true) {
-                log.info('✅ Correct answer detected');
-                // Replace hint box content with success message
-                existingHintBox.style.background = '#d4edda !important';
-                existingHintBox.style.borderColor = '#28a745 !important';
-                existingHintBox.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 10px; color: #155724; font-weight: bold; font-size: 16px; width: 100%;">
-                        <span style="color: #28a745; font-size: 18px;">✅</span>
-                        <span>כל הכבוד! תשובה נכונה</span>
-                        <button class="lilac-next-question" style="
-                            background: #28a745 !important;
-                            color: white !important;
-                            border: none !important;
-                            border-radius: 6px !important;
-                            padding: 10px 20px !important;
-                            font-size: 16px !important;
-                            font-weight: bold !important;
-                            cursor: pointer !important;
-                            margin-right: auto !important;
-                        ">הבא</button>
-                    </div>
-                `;
-                
-                // Add click handler for next button
-                const nextButton = existingHintBox.querySelector('.lilac-next-question');
-                if (nextButton) {
-                    nextButton.addEventListener('click', () => {
-                        state.hintViewed = false;
-                        state.canProceed = false;
-                        log.info('➡️ Moving to next question - state reset');
-                    });
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+                    for (let i = 0; i < mutation.addedNodes.length; i++) {
+                        const node = mutation.addedNodes[i];
+                        
+                        if (node.nodeType === 1) {
+                            if ($(node).hasClass('wpProQuiz_listItem')) {
+                                setupQuestion(0, node);
+                            } else {
+                                $(node).find('.wpProQuiz_listItem').each(setupQuestion);
+                            }
+                        }
+                    }
                 }
-                
-            } else if (isCorrect === false) {
-                log.info('❌ Wrong answer detected');
-                // Replace hint box content with error message
-                existingHintBox.style.background = '#f8d7da !important';
-                existingHintBox.style.borderColor = '#dc3545 !important';
-                existingHintBox.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 10px; color: #721c24; font-weight: bold; font-size: 16px; width: 100%;">
-                        <span style="color: #dc3545; font-size: 18px;">❌</span>
-                        <span>תשובה שגויה! לחץ על רמז לקבלת עזרה</span>
-                        <button class="lilac-force-hint" style="
-                            background: #dc3545 !important;
-                            color: white !important;
-                            border: none !important;
-                            border-radius: 6px !important;
-                            padding: 10px 20px !important;
-                            font-size: 16px !important;
-                            font-weight: bold !important;
-                            cursor: pointer !important;
-                            margin-right: auto !important;
-                        ">רמז</button>
-                    </div>
-                `;
-                
-                // Add click handler for hint button
-                const hintButton = existingHintBox.querySelector('.lilac-force-hint');
-                if (hintButton) {
-                    hintButton.addEventListener('click', () => {
-                        showHintModal();
-                        state.hintViewed = true;
-                        log.info('💡 Hint viewed');
-                    });
-                }
-                
-                disableAnswerInputs();
-            } else {
-                log.info('⚠️ Could not determine answer correctness');
-            }
-        }, 100);
+            });
+        });
+        
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+        
+        log.info('MutationObserver setup complete');
     }
     
-    /**
-     * Setup question with hint enforcement
-     */
-    function setupQuestion(index, element) {
-    const questionElement = element || document.querySelectorAll('.wpProQuiz_listItem')[index];
-    if (!questionElement) return;
-    
-    log.info('🔧 Setting up question with hint enforcement');
-    
-    // Add event listeners to answer inputs
-    const inputs = questionElement.querySelectorAll('input[type="radio"], input[type="checkbox"]');
-    inputs.forEach(input => {
-        input.addEventListener('change', handleAnswerSelection);
-        input.addEventListener('click', handleAnswerSelection);
+    // Initialize when DOM is ready
+    $(document).ready(function() {
+        setTimeout(initQuizHintEnforcement, config.observerDelay);
     });
     
-    // Show initial hint message
-    showInlineHintMessage();
-    
-        log.info('✅ Quiz hint enforcement initialized');
-    }
-    
-    /**
-     * Initialize hint enforcement when page loads
-     */
-    function initializeHintEnforcement() {
-    log.info('🚀 Initializing hint enforcement system');
-    
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeHintEnforcement);
-        return;
-    }
-    
-    // Wait a bit more for quiz to fully load
-    setTimeout(() => {
-        const questions = document.querySelectorAll('.wpProQuiz_listItem');
-        log.info('📋 Found questions:', questions.length);
-        
-        if (questions.length > 0) {
-            questions.forEach((question, index) => {
-                setupQuestion(index, question);
-            });
-        } else {
-            // Retry after a delay if no questions found
-            setTimeout(() => {
-                const retryQuestions = document.querySelectorAll('.wpProQuiz_listItem');
-                if (retryQuestions.length > 0) {
-                    retryQuestions.forEach((question, index) => {
-                        setupQuestion(index, question);
-                    });
-                }
-            }, 2000);
-        }
-    }, 500);
-}
-// Start initialization
-initializeHintEnforcement();
-
 })(jQuery);
