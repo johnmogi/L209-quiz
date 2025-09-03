@@ -272,8 +272,13 @@
         inputs.forEach(input => {
             input.disabled = false;
             input.style.opacity = '1';
+            // Re-attach event listeners to ensure they work after enabling
+            input.removeEventListener('change', handleAnswerSelection);
+            input.removeEventListener('click', handleAnswerSelection);
+            input.addEventListener('change', handleAnswerSelection);
+            input.addEventListener('click', handleAnswerSelection);
         });
-        log.info('✅ Answer inputs re-enabled');
+        log.info('✅ Answer inputs re-enabled with event listeners');
     }
     
     /**
@@ -553,36 +558,94 @@
      * Initialize hint enforcement when page loads
      */
     function initializeHintEnforcement() {
-    log.info('🚀 Initializing hint enforcement system');
+        log.info('🚀 Initializing hint enforcement system');
+        
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeHintEnforcement);
+            return;
+        }
+        
+        // Wait a bit more for quiz to fully load
+        setTimeout(() => {
+            const questions = document.querySelectorAll('.wpProQuiz_listItem');
+            log.info('📋 Found questions:', questions.length);
+            
+            if (questions.length > 0) {
+                questions.forEach((question, index) => {
+                    setupQuestion(index, question);
+                });
+                
+                // Also set up global event delegation for answer selection
+                document.addEventListener('change', function(event) {
+                    if (event.target.matches('.wpProQuiz_questionInput input[type="radio"], .wpProQuiz_questionInput input[type="checkbox"]')) {
+                        log.info('🎯 Global answer selection detected');
+                        handleAnswerSelection(event);
+                    }
+                });
+                
+                log.info('✅ Global event delegation set up');
+            } else {
+                log.info('⚠️ No questions found, retrying...');
+                // Retry after a delay if no questions found
+                setTimeout(() => {
+                    const retryQuestions = document.querySelectorAll('.wpProQuiz_listItem');
+                    log.info('📋 Retry found questions:', retryQuestions.length);
+                    if (retryQuestions.length > 0) {
+                        retryQuestions.forEach((question, index) => {
+                            setupQuestion(index, question);
+                        });
+                        
+                        // Set up global event delegation for retry case too
+                        document.addEventListener('change', function(event) {
+                            if (event.target.matches('.wpProQuiz_questionInput input[type="radio"], .wpProQuiz_questionInput input[type="checkbox"]')) {
+                                log.info('🎯 Global answer selection detected (retry)');
+                                handleAnswerSelection(event);
+                            }
+                        });
+                        
+                        log.info('✅ Global event delegation set up (retry)');
+                    } else {
+                        log.info('❌ Still no questions found after retry');
+                    }
+                }, 2000);
+            }
+        }, 500);
+}
+
+// Alternative initialization approach - use multiple methods
+$(document).ready(function() {
+    log.info('🚀 jQuery ready - starting hint enforcement');
+    initializeHintEnforcement();
     
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeHintEnforcement);
-        return;
-    }
+    // Set up universal event listener for answer changes - multiple selectors
+    $(document).on('change click', 'input[type="radio"], input[type="checkbox"]', function(e) {
+        log.info('🎯 Universal answer selection detected');
+        handleAnswerSelection(e);
+    });
     
-    // Wait a bit more for quiz to fully load
+    // Also try specific quiz selectors
+    $(document).on('change click', '.wpProQuiz_questionInput input, .wpProQuiz_listItem input', function(e) {
+        log.info('🎯 Quiz-specific answer selection detected');
+        handleAnswerSelection(e);
+    });
+    
+    log.info('✅ Universal event delegation set up');
+    
+    // Also try immediate initialization
     setTimeout(() => {
+        log.info('🔄 Backup initialization attempt');
         const questions = document.querySelectorAll('.wpProQuiz_listItem');
-        log.info('📋 Found questions:', questions.length);
+        log.info('📋 Backup found questions:', questions.length);
         
         if (questions.length > 0) {
             questions.forEach((question, index) => {
                 setupQuestion(index, question);
             });
-        } else {
-            // Retry after a delay if no questions found
-            setTimeout(() => {
-                const retryQuestions = document.querySelectorAll('.wpProQuiz_listItem');
-                if (retryQuestions.length > 0) {
-                    retryQuestions.forEach((question, index) => {
-                        setupQuestion(index, question);
-                    });
-                }
-            }, 2000);
         }
-    }, 500);
-}
+    }, 1000);
+});
+
 // Start initialization
 initializeHintEnforcement();
 
