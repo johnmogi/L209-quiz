@@ -1375,8 +1375,8 @@ function setupEarlyAnswerDetection($question) {
         console.log('[LilacQuiz] *** INJECTING INITIAL HINT BOXES ***');
         injectInitialHintBoxes();
         
-        // Initialize core functionality
-        initQuizAnswerReselection();
+        // Initialize core functionality - function doesn't exist, commenting out
+        // initQuizAnswerReselection();
         setupObserver();
         setupAnswerObserver();
         

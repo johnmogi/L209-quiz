@@ -25,8 +25,24 @@ define('LILAC_QUIZ_SIDEBAR_PLUGIN_URL', plugin_dir_url(__FILE__));
 // Include the main class
 require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'includes/class-quiz-sidebar.php';
 
-// Include quiz debug functionality
-require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'quiz-debug.php';
+// Include additional functionality
+require_once plugin_dir_path(__FILE__) . 'includes/quiz-functions.php';
+require_once plugin_dir_path(__FILE__) . 'includes/ajax-handlers.php';
+
+// Include quiz debug functionality - temporarily disabled due to reflection errors
+// require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'quiz-debug.php';
+
+// Enqueue the safe detector script
+function lilac_enqueue_question_detector() {
+    wp_enqueue_script(
+        'quiz-question-detector',
+        plugin_dir_url(__FILE__) . 'assets/js/quiz-question-detector-safe.js',
+        array('jquery'),
+        '1.0.0',
+        true
+    );
+}
+add_action('wp_enqueue_scripts', 'lilac_enqueue_question_detector');
 
 // Initialize the plugin
 function lilac_quiz_sidebar_init() {

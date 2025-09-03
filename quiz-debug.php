@@ -57,21 +57,26 @@ function lilac_parse_answer_data($answer_data) {
                 $is_correct = false;
                 
                 try {
-                    // Use reflection to access protected properties
-                    $reflection = new ReflectionObject($answer_obj);
-                    
-                    // Try to get _answer property
-                    if ($reflection->hasProperty('_answer')) {
-                        $answerProp = $reflection->getProperty('_answer');
-                        $answerProp->setAccessible(true);
-                        $answer_text = $answerProp->getValue($answer_obj);
-                    }
-                    
-                    // Try to get _correct property
-                    if ($reflection->hasProperty('_correct')) {
-                        $correctProp = $reflection->getProperty('_correct');
-                        $correctProp->setAccessible(true);
-                        $is_correct = $correctProp->getValue($answer_obj);
+                    // Use reflection to access protected properties safely
+                    try {
+                        $reflection = new ReflectionObject($answer_obj);
+                        
+                        // Try to get _answer property
+                        if ($reflection->hasProperty('_answer')) {
+                            $answerProp = $reflection->getProperty('_answer');
+                            $answerProp->setAccessible(true);
+                            $answer_text = $answerProp->getValue($answer_obj);
+                        }
+                        
+                        // Try to get _correct property
+                        if ($reflection->hasProperty('_correct')) {
+                            $correctProp = $reflection->getProperty('_correct');
+                            $correctProp->setAccessible(true);
+                            $is_correct = $correctProp->getValue($answer_obj);
+                        }
+                    } catch (ReflectionException $re) {
+                        // Skip reflection if it fails
+                        continue;
                     }
                     
                 } catch (Exception $e) {
