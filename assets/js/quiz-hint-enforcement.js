@@ -155,17 +155,46 @@
             // Close modal handlers
             modal.querySelector('.close-modal').addEventListener('click', () => {
                 modal.style.display = 'none';
+                onHintModalClosed();
             });
             
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.style.display = 'none';
+                    onHintModalClosed();
                 }
             });
         }
         
         modal.style.display = 'flex';
         log.info('💡 Hint modal displayed');
+    }
+    
+    /**
+     * Handle hint modal closure - enable inputs and update hint box
+     */
+    function onHintModalClosed() {
+        log.info('🔓 Hint modal closed - enabling answer inputs');
+        
+        // Enable all answer inputs
+        enableAnswerInputs();
+        
+        // Update hint box to show inputs are now enabled
+        const hintBox = document.querySelector('.lilac-hint-message');
+        if (hintBox) {
+            hintBox.style.background = '#d4edda !important';
+            hintBox.style.borderColor = '#28a745 !important';
+            hintBox.style.animation = 'none !important';
+            hintBox.style.boxShadow = 'none !important';
+            hintBox.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px; color: #155724; font-weight: bold; font-size: 16px; width: 100%;">
+                    <span style="color: #28a745; font-size: 18px;">✓</span>
+                    <span>רמז נצפה! כעת ניתן לבחור תשובה</span>
+                </div>
+            `;
+        }
+        
+        log.info('✅ Inputs re-enabled after hint modal closed');
     }
     
     /**
@@ -259,9 +288,43 @@
         const inputs = document.querySelectorAll('.wpProQuiz_questionListItem input[type="radio"], .wpProQuiz_questionListItem input[type="checkbox"]');
         inputs.forEach(input => {
             input.disabled = true;
-            input.style.opacity = '0.5';
+            input.style.opacity = '0.3';
+            input.style.pointerEvents = 'none';
+            
+            // Add visual feedback to the parent container
+            const container = input.closest('.wpProQuiz_questionListItem');
+            if (container) {
+                container.style.position = 'relative';
+                container.style.opacity = '0.6';
+                
+                // Add overlay to prevent any interaction
+                if (!container.querySelector('.disabled-overlay')) {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'disabled-overlay';
+                    overlay.style.cssText = `
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(255, 255, 255, 0.7);
+                        z-index: 1000;
+                        cursor: not-allowed;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: bold;
+                        color: #dc3545;
+                        font-size: 14px;
+                        text-align: center;
+                        padding: 10px;
+                    `;
+                    overlay.innerHTML = 'יש לצפות ברמז לפני בחירת תשובה';
+                    container.appendChild(overlay);
+                }
+            }
         });
-        log.info('🚫 Answer inputs disabled');
+        log.info('🚫 Answer inputs disabled with visual feedback');
     }
     
     /**
@@ -272,13 +335,27 @@
         inputs.forEach(input => {
             input.disabled = false;
             input.style.opacity = '1';
+            input.style.pointerEvents = 'auto';
+            
+            // Remove visual feedback from parent container
+            const container = input.closest('.wpProQuiz_questionListItem');
+            if (container) {
+                container.style.opacity = '1';
+                
+                // Remove overlay
+                const overlay = container.querySelector('.disabled-overlay');
+                if (overlay) {
+                    overlay.remove();
+                }
+            }
+            
             // Re-attach event listeners to ensure they work after enabling
             input.removeEventListener('change', handleAnswerSelection);
             input.removeEventListener('click', handleAnswerSelection);
             input.addEventListener('change', handleAnswerSelection);
             input.addEventListener('click', handleAnswerSelection);
         });
-        log.info('✅ Answer inputs re-enabled with event listeners');
+        log.info('✅ Answer inputs re-enabled with visual feedback removed');
     }
     
     /**
@@ -476,13 +553,34 @@
                 
             } else if (isCorrect === false) {
                 log.info('❌ Wrong answer detected');
-                // Replace hint box content with error message
+                
+                // Immediately disable all answer inputs
+                disableAnswerInputs();
+                
+                // Add visual highlighting to hint area
                 existingHintBox.style.background = '#f8d7da !important';
                 existingHintBox.style.borderColor = '#dc3545 !important';
+                existingHintBox.style.boxShadow = '0 0 15px rgba(220, 53, 69, 0.5) !important';
+                existingHintBox.style.animation = 'pulse 2s infinite !important';
+                
+                // Add CSS for pulse animation
+                if (!document.getElementById('hint-pulse-style')) {
+                    const style = document.createElement('style');
+                    style.id = 'hint-pulse-style';
+                    style.textContent = `
+                        @keyframes pulse {
+                            0% { box-shadow: 0 0 15px rgba(220, 53, 69, 0.5); }
+                            50% { box-shadow: 0 0 25px rgba(220, 53, 69, 0.8); }
+                            100% { box-shadow: 0 0 15px rgba(220, 53, 69, 0.5); }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+                
                 existingHintBox.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 10px; color: #721c24; font-weight: bold; font-size: 16px; width: 100%;">
                         <span style="color: #dc3545; font-size: 18px;">❌</span>
-                        <span>תשובה שגויה! רמז לקבלת עזרה</span>
+                        <span>תשובה שגויה! חובה לצפות ברמז לפני המשך</span>
                         <button class="lilac-force-hint" style="
                             background: #dc3545 !important;
                             color: white !important;
@@ -493,6 +591,7 @@
                             font-weight: bold !important;
                             cursor: pointer !important;
                             margin-right: auto !important;
+                            animation: pulse 2s infinite !important;
                         ">רמז</button>
                     </div>
                 `;
@@ -503,27 +602,24 @@
                     hintButton.addEventListener('click', () => {
                         showHintModal();
                         state.hintViewed = true;
-                        log.info('💡 Hint viewed');
+                        log.info('💡 Hint viewed - modal opened');
                         
-                        // Enable answer inputs after hint is viewed
-                        setTimeout(() => {
-                            enableAnswerInputs();
-                            
-                            // Update hint message to show inputs are enabled
-                            existingHintBox.style.background = '#d4edda !important';
-                            existingHintBox.style.borderColor = '#28a745 !important';
-                            existingHintBox.innerHTML = `
-                                <div style="display: flex; align-items: center; gap: 10px; color: #155724; font-weight: bold; font-size: 16px; width: 100%;">
-                                    <span style="color: #28a745; font-size: 18px;">✓</span>
-                                    <span>רמז נצפה! כעת ניתן לבחור תשובה</span>
-                                </div>
-                            `;
-                            log.info('✅ Inputs re-enabled after hint viewing');
-                        }, 500);
+                        // Remove pulse animation and highlighting
+                        existingHintBox.style.animation = 'none !important';
+                        existingHintBox.style.boxShadow = 'none !important';
+                        
+                        // Update hint message but keep inputs disabled until modal closes
+                        existingHintBox.style.background = '#fff3cd !important';
+                        existingHintBox.style.borderColor = '#ffc107 !important';
+                        existingHintBox.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 10px; color: #856404; font-weight: bold; font-size: 16px; width: 100%;">
+                                <span style="color: #ffc107; font-size: 18px;">⏳</span>
+                                <span>רמז פתוח - סגור את החלון כדי להמשיך</span>
+                            </div>
+                        `;
+                        log.info('⏳ Waiting for modal to close before enabling inputs');
                     });
                 }
-                
-                disableAnswerInputs();
             } else {
                 log.info('⚠️ Could not determine answer correctness');
             }
