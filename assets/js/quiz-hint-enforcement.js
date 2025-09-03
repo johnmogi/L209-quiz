@@ -78,7 +78,7 @@
             log.info('📝 Answer selected - checking with debugger data');
             
             // Check answer immediately using debugger data
-            const isCorrect = checkAnswerFromDebuggerData($question);
+            const isCorrect = checkAnswerFromDebuggerData($(this).val());
             if (isCorrect !== null) {
                 if (isCorrect) {
                     log.info('✅ Correct answer detected from debugger');
@@ -89,28 +89,80 @@
                 }
             } else {
                 log.info('⚠️ No debugger data available, using fallback detection');
+                // Fallback to DOM-based detection with delay
+                setTimeout(() => {
+                    const $feedback = $question.find('.wpProQuiz_correct, .wpProQuiz_incorrect');
+                    if ($feedback.length > 0) {
+                        if ($feedback.hasClass('wpProQuiz_correct')) {
+                            log.info('✅ Correct answer detected from DOM feedback');
+                            handleCorrectAnswer($question);
+                        } else if ($feedback.hasClass('wpProQuiz_incorrect')) {
+                            log.info('❌ Incorrect answer detected from DOM feedback');
+                            handleIncorrectAnswer($question);
+                        }
+                    }
+                }, config.enforceHintDelay);
             }
         });
         
         // Handle check button clicks
-        $(document).on('click', '.wpProQuiz_button[name="check"], input[value*="בדוק"], button[onclick*="check"]', function() {
+        $(document).on('click', '.wpProQuiz_button[name="check"]', function() {
             const $question = $(this).closest('.wpProQuiz_listItem');
-            log.info('🔍 Check button clicked - verifying answer');
+            const selectedInput = $question.find('.wpProQuiz_questionInput:checked');
             
-            // Check answer immediately using debugger data
-            setTimeout(() => {
-                const isCorrect = checkAnswerFromDebuggerData($question);
+            if (selectedInput.length > 0) {
+                log.info('🔍 Check button clicked - verifying answer');
+                
+                // Check answer using debugger data
+                const isCorrect = checkAnswerFromDebuggerData(selectedInput.val());
                 if (isCorrect !== null) {
                     if (isCorrect) {
-                        log.info('✅ Correct answer confirmed on check');
+                        log.info('✅ Correct answer confirmed from debugger');
                         handleCorrectAnswer($question);
                     } else {
-                        log.info('❌ Incorrect answer confirmed on check');
+                        log.info('❌ Incorrect answer confirmed from debugger');
                         handleIncorrectAnswer($question);
                     }
+                } else {
+                    log.info('⚠️ No debugger data available for check, using fallback');
+                    // Fallback to DOM-based detection with delay
+                    setTimeout(() => {
+                        const $feedback = $question.find('.wpProQuiz_correct, .wpProQuiz_incorrect');
+                        if ($feedback.length > 0) {
+                            if ($feedback.hasClass('wpProQuiz_correct')) {
+                                log.info('✅ Correct answer confirmed from DOM feedback');
+                                handleCorrectAnswer($question);
+                            } else if ($feedback.hasClass('wpProQuiz_incorrect')) {
+                                log.info('❌ Incorrect answer confirmed from DOM feedback');
+                                handleIncorrectAnswer($question);
+                            }
+                        }
+                    }, config.enforceHintDelay);
                 }
-            }, 300);
+            }
         });
+    }
+    
+    /**
+     * Check if answer is correct using debugger data
+     */
+    function checkAnswerFromDebuggerData(selectedIndex) {
+        if (window.quizDetector && window.quizDetector.correctAnswers) {
+            const correctAnswers = window.quizDetector.correctAnswers;
+            if (correctAnswers.answers && Array.isArray(correctAnswers.answers)) {
+                const correctAnswer = correctAnswers.answers.find(answer => answer.correct === true);
+                if (correctAnswer) {
+                    log.info('🎯 Debugger data - Correct answer index:', correctAnswer.index);
+                    log.info('🎯 Selected index:', selectedIndex);
+                    // Convert to numbers for comparison
+                    const correctIndex = parseInt(correctAnswer.index);
+                    const selectedIndexNum = parseInt(selectedIndex);
+                    return correctIndex === selectedIndexNum;
+                }
+            }
+        }
+        log.info('⚠️ No debugger data available for answer checking');
+        return null;
     }
     
     /**
@@ -133,16 +185,6 @@
     }
     
     /**
-     * Check answer correctness using debugger data
-     */
-    function checkAnswerFromDebuggerData($question) {
-        try {
-            // Get debugger data from quiz detector
-            if (window.quizDetector && window.quizDetector.correctAnswers && window.quizDetector.correctAnswers.answers) {
-                const correctAnswersData = window.quizDetector.correctAnswers.answers;
-                
-                // Get selected answer indices
-                const selectedAnswers = [];
                 $question.find('input[type="radio"]:checked, input[type="checkbox"]:checked').each(function() {
                     const $input = $(this);
                     // Try multiple ways to get the answer index
@@ -236,11 +278,8 @@
         const hintMessage = document.createElement('div');
         hintMessage.id = 'lilac-hint-message';
         hintMessage.className = 'lilac-hint-message';
+        // Style the hint message container
         hintMessage.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
             background: #fff3cd;
             border: 2px solid #ffc107;
             border-radius: 8px;
@@ -248,13 +287,9 @@
             display: flex;
             align-items: center;
             gap: 15px;
-            z-index: 9999;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             direction: rtl;
             text-align: right;
             font-family: Arial, sans-serif;
-            max-width: 90%;
-            width: auto;
         `;
         
         hintMessage.innerHTML = `
@@ -283,25 +318,23 @@
             ">רמז</button>
         `;
         
-        // Add to page - ensure it's fully visible
+        // Add to page - inline at bottom, not floating
         const quizContainer = document.querySelector('.wpProQuiz_content, .quiz-content, .learndash-quiz-content, .wpProQuiz_quiz');
         if (quizContainer) {
-            // Position relative to quiz container with more space
-            hintMessage.style.position = 'absolute';
-            hintMessage.style.bottom = '-100px';
-            hintMessage.style.left = '50%';
-            hintMessage.style.transform = 'translateX(-50%)';
-            hintMessage.style.zIndex = '10000';
-            quizContainer.style.position = 'relative';
-            quizContainer.style.marginBottom = '120px'; // Add space to prevent cutoff
+            // Insert as inline element at the end of quiz container
+            hintMessage.style.position = 'static';
+            hintMessage.style.display = 'block';
+            hintMessage.style.margin = '20px auto';
+            hintMessage.style.width = 'fit-content';
+            hintMessage.style.maxWidth = '90%';
             quizContainer.appendChild(hintMessage);
         } else {
-            // Fallback to fixed positioning higher up
-            hintMessage.style.position = 'fixed';
-            hintMessage.style.bottom = '150px';
-            hintMessage.style.left = '50%';
-            hintMessage.style.transform = 'translateX(-50%)';
-            hintMessage.style.zIndex = '10000';
+            // Fallback - append to body but still inline
+            hintMessage.style.position = 'static';
+            hintMessage.style.display = 'block';
+            hintMessage.style.margin = '20px auto';
+            hintMessage.style.width = 'fit-content';
+            hintMessage.style.maxWidth = '90%';
             document.body.appendChild(hintMessage);
         }
         
