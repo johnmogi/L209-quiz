@@ -180,8 +180,8 @@
         enableAnswerInputs();
         
         // Update hint box to show inputs are now enabled
-        const hintBox = document.querySelector('.lilac-hint-message');
-        if (hintBox) {
+        const hintBoxes = document.querySelectorAll('.lilac-hint-message');
+        hintBoxes.forEach(hintBox => {
             hintBox.style.background = '#d4edda !important';
             hintBox.style.borderColor = '#28a745 !important';
             hintBox.style.animation = 'none !important';
@@ -192,7 +192,7 @@
                     <span>רמז נצפה! כעת ניתן לבחור תשובה</span>
                 </div>
             `;
-        }
+        });
         
         log.info('✅ Inputs re-enabled after hint modal closed');
     }
@@ -282,49 +282,12 @@
     }
     
     /**
-     * Disable answer inputs after wrong answer
+     * Block ALL answer inputs on the page after wrong answer
      */
-    function disableAnswerInputs() {
-        const inputs = document.querySelectorAll('.wpProQuiz_questionListItem input[type="radio"], .wpProQuiz_questionListItem input[type="checkbox"]');
-        inputs.forEach(input => {
-            input.disabled = true;
-            input.style.opacity = '0.3';
-            input.style.pointerEvents = 'none';
-            
-            // Add visual feedback to the parent container
-            const container = input.closest('.wpProQuiz_questionListItem');
-            if (container) {
-                container.style.position = 'relative';
-                container.style.opacity = '0.6';
-                
-                // Add overlay to prevent any interaction
-                if (!container.querySelector('.disabled-overlay')) {
-                    const overlay = document.createElement('div');
-                    overlay.className = 'disabled-overlay';
-                    overlay.style.cssText = `
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        right: 0;
-                        bottom: 0;
-                        background: rgba(255, 255, 255, 0.7);
-                        z-index: 1000;
-                        cursor: not-allowed;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-weight: bold;
-                        color: #dc3545;
-                        font-size: 14px;
-                        text-align: center;
-                        padding: 10px;
-                    `;
-                    overlay.innerHTML = 'יש לצפות ברמז לפני בחירת תשובה';
-                    container.appendChild(overlay);
-                }
-            }
-        });
-        log.info('🚫 Answer inputs disabled with visual feedback');
+    function blockAllAnswerInputs() {
+        // DISABLED - No blocking for now, just log the attempt
+        log.info('🚫 Block attempt - but blocking is disabled for debugging');
+        return;
     }
     
     /**
@@ -332,21 +295,28 @@
      */
     function enableAnswerInputs() {
         const inputs = document.querySelectorAll('.wpProQuiz_questionListItem input[type="radio"], .wpProQuiz_questionListItem input[type="checkbox"]');
+        
         inputs.forEach(input => {
+            // Force enable all inputs
             input.disabled = false;
             input.style.opacity = '1';
             input.style.pointerEvents = 'auto';
+            input.style.cursor = 'pointer';
+            
+            // Clean up stored data
+            delete input.dataset.originalDisabled;
+            delete input.dataset.originalOpacity;
+            delete input.dataset.originalPointerEvents;
             
             // Remove visual feedback from parent container
             const container = input.closest('.wpProQuiz_questionListItem');
             if (container) {
                 container.style.opacity = '1';
+                container.style.position = '';
                 
-                // Remove overlay
-                const overlay = container.querySelector('.disabled-overlay');
-                if (overlay) {
-                    overlay.remove();
-                }
+                // Remove all blocking overlays
+                const overlays = container.querySelectorAll('.quiz-blocked-overlay, .disabled-overlay');
+                overlays.forEach(overlay => overlay.remove());
             }
             
             // Re-attach event listeners to ensure they work after enabling
@@ -355,7 +325,50 @@
             input.addEventListener('change', handleAnswerSelection);
             input.addEventListener('click', handleAnswerSelection);
         });
-        log.info('✅ Answer inputs re-enabled with visual feedback removed');
+        
+        log.info('✅ All answer inputs force-enabled - ' + inputs.length + ' inputs restored');
+    }
+    
+    /**
+     * Force remove all blocks immediately
+     */
+    function forceRemoveAllBlocks() {
+        // Remove all overlays
+        document.querySelectorAll('.quiz-blocked-overlay, .disabled-overlay').forEach(overlay => {
+            overlay.remove();
+        });
+        
+        // Enable all inputs
+        const inputs = document.querySelectorAll('.wpProQuiz_questionListItem input[type="radio"], .wpProQuiz_questionListItem input[type="checkbox"]');
+        inputs.forEach(input => {
+            input.disabled = false;
+            input.style.opacity = '1';
+            input.style.pointerEvents = 'auto';
+            input.style.cursor = 'pointer';
+            
+            const container = input.closest('.wpProQuiz_questionListItem');
+            if (container) {
+                container.style.opacity = '1';
+                container.style.position = '';
+            }
+        });
+        
+        // Update hint messages
+        const hintBoxes = document.querySelectorAll('.lilac-hint-message');
+        hintBoxes.forEach(hintBox => {
+            hintBox.style.background = '#d4edda !important';
+            hintBox.style.borderColor = '#28a745 !important';
+            hintBox.style.animation = 'none !important';
+            hintBox.style.boxShadow = 'none !important';
+            hintBox.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px; color: #155724; font-weight: bold; font-size: 16px; width: 100%;">
+                    <span style="color: #28a745; font-size: 18px;">✓</span>
+                    <span>רמז נצפה! כעת ניתן לבחור תשובה</span>
+                </div>
+            `;
+        });
+        
+        log.info('🔓 FORCE UNBLOCK: All blocks removed immediately');
     }
     
     /**
@@ -552,10 +565,10 @@
                 }
                 
             } else if (isCorrect === false) {
-                log.info('❌ Wrong answer detected');
+                log.info('❌ Wrong answer detected - blocking all answer inputs');
                 
-                // Immediately disable all answer inputs
-                disableAnswerInputs();
+                // Block ALL answer inputs on the page (not just current question)
+                blockAllAnswerInputs();
                 
                 // Add visual highlighting to hint area
                 existingHintBox.style.background = '#f8d7da !important';
@@ -635,11 +648,11 @@
         
         log.info('🔧 Setting up question with hint enforcement');
         
-        // Disable answer inputs initially
+        // Enable answer inputs initially (allow first selection)
         const inputs = questionElement.querySelectorAll('input[type="radio"], input[type="checkbox"]');
         inputs.forEach(input => {
-            input.disabled = true;
-            input.style.opacity = '0.5';
+            input.disabled = false;
+            input.style.opacity = '1';
             input.addEventListener('change', handleAnswerSelection);
             input.addEventListener('click', handleAnswerSelection);
         });
@@ -744,5 +757,13 @@ $(document).ready(function() {
 
 // Start initialization
 initializeHintEnforcement();
+
+// Force remove all blocks immediately on load
+setTimeout(() => {
+    forceRemoveAllBlocks();
+}, 1000);
+
+// Make forceRemoveAllBlocks available globally for debugging
+window.forceRemoveAllBlocks = forceRemoveAllBlocks;
 
 })(jQuery);
