@@ -147,7 +147,7 @@
             modalContent.className = 'modal-content';
             modalContent.style.cssText = 'background: white; padding: 30px; border-radius: 10px; max-width: 500px; width: 90%; direction: rtl; text-align: right; font-family: Arial, sans-serif; position: relative;';
             
-            modalContent.innerHTML = '<button class="close-modal" style="position: absolute; top: 10px; left: 10px; background: #dc3545; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 18px;">×</button><h3 style="margin-top: 0; color: #333;">רמז לשאלה</h3><p style="font-size: 16px; line-height: 1.5; color: #555;">' + hintText + '</p>';
+            modalContent.innerHTML = '<button class="close-modal" style="position: absolute; top: 15px; left: 15px; background: #6c757d; color: white; border: none; width: 35px; height: 35px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center;">×</button><p style="font-size: 16px; line-height: 1.5; color: #555; margin-top: 20px;">' + hintText + '</p>';
             
             modal.appendChild(modalContent);
             document.body.appendChild(modal);
@@ -182,12 +182,19 @@
                 existing.remove();
             }
             
+            // Hide the original hint content
+            const originalHint = question.querySelector('.wpProQuiz_tipp');
+            if (originalHint) {
+                originalHint.style.display = 'none';
+                originalHint.style.visibility = 'hidden';
+            }
+            
             // Create hint message for this question
             const hintMessage = document.createElement('div');
             hintMessage.className = 'lilac-hint-message';
-            hintMessage.style.cssText = 'background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px 20px; display: flex; align-items: center; gap: 15px; direction: rtl; text-align: right; font-family: Arial, sans-serif; margin: 15px 0; width: 100%; box-sizing: border-box;';
+            hintMessage.style.cssText = 'background: #cce5ff; border: 2px solid #007bff; border-radius: 8px; padding: 15px 20px; display: flex; align-items: center; gap: 15px; direction: rtl; text-align: right; font-family: Arial, sans-serif; margin: 15px 0; width: 100%; box-sizing: border-box;';
             
-            hintMessage.innerHTML = '<div style="display: flex; align-items: center; gap: 10px; color: #856404; font-weight: bold; font-size: 16px;"><span style="color: #dc3545; font-size: 18px;">❌</span><span>תשובה שגויה! לחץ על רמז לקבלת עזרה</span></div><button class="lilac-force-hint" style="background: #ffc107; color: #212529; border: none; border-radius: 6px; padding: 10px 20px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; min-width: 80px;">רמז</button>';
+            hintMessage.innerHTML = '<div style="display: flex; align-items: center; gap: 10px; color: #004085; font-weight: bold; font-size: 16px;"><span style="color: #007bff; font-size: 18px;">💡</span><span>צפייה ברמז</span></div><button class="lilac-force-hint" style="background: #007bff; color: white; border: none; border-radius: 6px; padding: 10px 20px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; min-width: 80px;">רמז</button>';
             
             // Add click handler for hint button
             const hintButton = hintMessage.querySelector('.lilac-force-hint');
@@ -470,7 +477,7 @@
                 existingHintBox.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 10px; color: #721c24; font-weight: bold; font-size: 16px; width: 100%;">
                         <span style="color: #dc3545; font-size: 18px;">❌</span>
-                        <span>תשובה שגויה! לחץ על רמז לקבלת עזרה</span>
+                        <span>תשובה שגויה! רמז לקבלת עזרה</span>
                         <button class="lilac-force-hint" style="
                             background: #dc3545 !important;
                             color: white !important;
@@ -498,12 +505,12 @@
                             enableAnswerInputs();
                             
                             // Update hint message to show inputs are enabled
-                            existingHintBox.style.background = '#fff3cd !important';
-                            existingHintBox.style.borderColor = '#ffc107 !important';
+                            existingHintBox.style.background = '#d4edda !important';
+                            existingHintBox.style.borderColor = '#28a745 !important';
                             existingHintBox.innerHTML = `
-                                <div style="display: flex; align-items: center; gap: 10px; color: #856404; font-weight: bold; font-size: 16px; width: 100%;">
+                                <div style="display: flex; align-items: center; gap: 10px; color: #155724; font-weight: bold; font-size: 16px; width: 100%;">
                                     <span style="color: #28a745; font-size: 18px;">✓</span>
-                                    <span>רמז נצפה! כעת ניתן לבחור תשובה מחדש</span>
+                                    <span>רמז נצפה! כעת ניתן לבחור תשובה</span>
                                 </div>
                             `;
                             log.info('✅ Inputs re-enabled after hint viewing');
@@ -522,21 +529,23 @@
      * Setup question with hint enforcement
      */
     function setupQuestion(index, element) {
-    const questionElement = element || document.querySelectorAll('.wpProQuiz_listItem')[index];
-    if (!questionElement) return;
-    
-    log.info('🔧 Setting up question with hint enforcement');
-    
-    // Add event listeners to answer inputs
-    const inputs = questionElement.querySelectorAll('input[type="radio"], input[type="checkbox"]');
-    inputs.forEach(input => {
-        input.addEventListener('change', handleAnswerSelection);
-        input.addEventListener('click', handleAnswerSelection);
-    });
-    
-    // Show initial hint message
-    showInlineHintMessage();
-    
+        const questionElement = element || document.querySelectorAll('.wpProQuiz_listItem')[index];
+        if (!questionElement) return;
+        
+        log.info('🔧 Setting up question with hint enforcement');
+        
+        // Disable answer inputs initially
+        const inputs = questionElement.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+        inputs.forEach(input => {
+            input.disabled = true;
+            input.style.opacity = '0.5';
+            input.addEventListener('change', handleAnswerSelection);
+            input.addEventListener('click', handleAnswerSelection);
+        });
+        
+        // Show initial hint message
+        showInlineHintMessage();
+        
         log.info('✅ Quiz hint enforcement initialized');
     }
     
