@@ -238,9 +238,9 @@ class Lilac_Quiz_Sidebar {
             $classes[] = 'richSidebar';
         }
 
-        // Add enforceHint class if enforce hint is enabled
+        // Add enforce-hint class if enforce hint is enabled
         if ($enforce_hint === '1' || $enforce_hint === 'yes' || $enforce_hint === true) {
-            $classes[] = 'enforceHint';
+            $classes[] = 'enforce-hint';
         }
 
         return $classes;
@@ -358,49 +358,41 @@ class Lilac_Quiz_Sidebar {
                 // Debug info removed for production
             }
             
-            // Always enqueue quiz detector and feedback scripts on quiz pages
-            // Enqueue the enhanced detector script
-            wp_enqueue_script(
-                'quiz-question-detector-enhanced',
-                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-question-detector-enhanced.js',
-                array('jquery'),
-                '2.0.0-enhanced-' . time(),
-                true
-            );
-            
-            // Enqueue the STABLE hint enforcement script
-            wp_enqueue_script(
-                'quiz-hint-enforcement-stable',
-                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-hint-enforcement-stable.js',
-                array('jquery', 'quiz-question-detector-enhanced'),
-                '2.0.0-stable-' . time(),
-                true
-            );
-            
-            // Enqueue the enhanced answer reselection script
-            wp_enqueue_script(
-                'quiz-answer-reselection',
-                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-answer-reselection.js',
-                array('jquery', 'quiz-question-detector-enhanced', 'quiz-hint-enforcement-stable'),
-                '1.0.2-stable',
-                true
-            );
-            
-            // Enqueue the quiz expansion overlay for detailed question viewing
-            wp_enqueue_script(
-                'quiz-expansion-overlay',
-                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-expansion-overlay.js',
-                array('jquery', 'quiz-question-detector-enhanced'),
-                '1.0.0-expansion-' . time(),
-                true
-            );
+            // Core functionality scripts only - moved inactive scripts to bu2 folder
             
             // Enqueue the quiz feedback system for always-visible hint button and answer feedback
             wp_enqueue_script(
                 'quiz-feedback-system',
                 LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-feedback-system.js',
                 array('jquery'),
-                '1.0.0-feedback-' . time(),
+                '2.0.0-enhanced-' . time() . '-' . rand(1000, 9999),
+                true
+            );
+            
+            // Enqueue force hint button script to bypass caching issues
+            wp_enqueue_script(
+                'quiz-hint-button-force',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-hint-button-force.js',
+                array('jquery'),
+                '1.0.0-force-' . time() . '-' . rand(1000, 9999),
+                true
+            );
+            
+            // RESTORE DEBUGGER - Enqueue quiz question detector for debugger functionality
+            wp_enqueue_script(
+                'quiz-question-detector-enhanced',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/bu2/quiz-question-detector-enhanced.js',
+                array('jquery'),
+                '1.0.0-debugger-' . time() . '-' . rand(1000, 9999),
+                true
+            );
+            
+            // RESTORE DEBUGGER - Enqueue expansion overlay for debugger functionality
+            wp_enqueue_script(
+                'quiz-expansion-overlay',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/bu2/quiz-expansion-overlay.js',
+                array('jquery', 'quiz-question-detector-enhanced'),
+                '1.0.0-debugger-' . time() . '-' . rand(1000, 9999),
                 true
             );
             
@@ -430,21 +422,8 @@ class Lilac_Quiz_Sidebar {
                     LILAC_QUIZ_SIDEBAR_VERSION
                 );
                 
-                // Enqueue navigation control script
-                wp_enqueue_script(
-                    'lilac-quiz-navigation-control',
-                    LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-navigation-control.js',
-                    array('jquery'),
-                    LILAC_QUIZ_SIDEBAR_VERSION,
-                    true
-                );
-                
-                // Localize script with enforce_hint setting
-                wp_localize_script('lilac-quiz-navigation-control', 'lilacQuizSidebar', array(
-                    'enforceHint' => true,
-                    'ajaxUrl' => admin_url('admin-ajax.php'),
-                    'nonce' => wp_create_nonce('lilac_quiz_sidebar_nonce')
-                ));
+                // Navigation control script moved to bu2 folder - disabled to prevent 404 errors
+                // Localize script call also removed since the script is no longer enqueued
                 
                 // OLD SCRIPT DISABLED - Using new hint enforcement system instead
                 // The new system is loaded via lilac_enqueue_question_detector() in main plugin file
