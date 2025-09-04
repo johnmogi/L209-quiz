@@ -47,15 +47,21 @@ if (typeof jQuery !== 'undefined') {
 }
 
     // Quiz Data Retrieval Function
-    function retrieveQuizAnswers(quizId) {
-        console.log(`[LilacQuiz] Retrieving answers for quiz ID: ${quizId}`);
+    function retrieveQuizAnswers(quizId, questionId) {
+        console.log(`[LilacQuiz] Retrieving answers for quiz ID: ${quizId}, question ID: ${questionId}`);
         
         // This would normally be an AJAX call to a PHP endpoint
-        // For now, we'll simulate the data structure
+        // For now, we'll simulate the data structure with question-specific data
         const quizData = {
             quiz_id: quizId,
-            questions: [],
-            status: 'success'
+            question_id: questionId,
+            questions: [{
+                id: questionId,
+                correct_answers: ['Answer A', 'Answer B'], // Simulated correct answers
+                hints: ['This is a hint for question ' + questionId]
+            }],
+            status: 'success',
+            timestamp: new Date().toISOString()
         };
         
         // Display in footer
@@ -68,7 +74,11 @@ if (typeof jQuery !== 'undefined') {
         // Remove existing debug info
         $('#lilac-quiz-debug').remove();
         
-        // Create debug container
+        // Get quiz progress information
+        const position = getCurrentQuestionPosition();
+        const meta = window.lilacQuizMeta || {};
+        
+        // Create debug container with enhanced quiz information
         const debugHtml = `
             <div id="lilac-quiz-debug" style="
                 position: fixed;
@@ -81,26 +91,38 @@ if (typeof jQuery !== 'undefined') {
                 font-size: 12px;
                 padding: 10px;
                 z-index: 9999;
-                max-height: 200px;
+                max-height: 250px;
                 overflow-y: auto;
                 border-top: 2px solid #00ff00;
             ">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <strong>LILAC Quiz Debug - Quiz ID: ${quizData.quiz_id}</strong>
+                    <strong>LILAC Quiz Debug - Quiz ID: ${quizData.quiz_id} | Q: ${position.current}/${position.total} (${position.progress}%) | Source: ${quizData.source || 'Custom'}</strong>
                     <button onclick="$('#lilac-quiz-debug').remove()" style="background: #ff0000; color: white; border: none; padding: 2px 8px; cursor: pointer;">×</button>
                 </div>
                 <div id="quiz-debug-content">
+                    <div style="color: #ffff00; font-weight: bold;">📊 QUIZ OVERVIEW:</div>
+                    <div>Total Questions in Quiz: ${position.total} ${position.total === 30 ? '(Full Set)' : position.total < 30 ? '(Partial)' : '(Extended)'}</div>
+                    <div>Current Question: ${position.current} of ${position.total}</div>
+                    <div>Progress: ${position.progress}% complete</div>
+                    <div>Questions with Hints: ${meta.questionsWithHints || 'Unknown'}</div>
+                    <div>Visible Questions: ${meta.visibleQuestions || 'Unknown'}</div>
+                    <div style="color: #ffff00; font-weight: bold; margin-top: 8px;">🔍 CURRENT DATA:</div>
                     <div>Status: ${quizData.status}</div>
-                    <div>Questions Found: ${quizData.questions.length}</div>
+                    <div>Data Source: ${quizData.source || 'Custom System'}</div>
+                    <div>Question ID: ${quizData.question_id || 'Unknown'}</div>
+                    <div>Correct Answers: ${quizData.questions[0] ? (quizData.questions[0].correct_answers.length > 0 ? quizData.questions[0].correct_answers.join(', ') : 'No correct answers found') : 'None'}</div>
+                    <div>All Answers: ${quizData.questions[0] && quizData.questions[0].all_answers ? quizData.questions[0].all_answers.length : 0} total</div>
+                    <div style="color: #ffff00; font-weight: bold; margin-top: 8px;">⚡ SYSTEM:</div>
                     <div>Click Counter: ${window.lilacClickCounter || 0}</div>
-                    <div>Timestamp: ${new Date().toLocaleTimeString()}</div>
+                    <div>Last Updated: ${quizData.timestamp ? new Date(quizData.timestamp).toLocaleTimeString() : 'N/A'}</div>
+                    <div>Last Scan: ${meta.lastScanned ? new Date(meta.lastScanned).toLocaleTimeString() : 'N/A'}</div>
                 </div>
             </div>
         `;
         
         $('body').append(debugHtml);
         
-        console.log('[LilacQuiz] Debug info displayed in footer');
+        console.log(`[LilacQuiz] 📊 Debug: Quiz:${quizData.quiz_id} | Q:${position.current}/${position.total} | ${quizData.source || 'Custom'}`);
     }
     
     // Make functions globally available for console testing
@@ -155,10 +177,16 @@ if (typeof jQuery !== 'undefined') {
     };
     
     /**
-     * Extract question data from the DOM
+     * Extract question data from the DOM and fetch answers for current question
      */
     function extractQuestionData() {
         log.info('Scanning for question data...');
+        
+        // Count total questions in the quiz
+        const totalQuestions = $('.wpProQuiz_listItem').length;
+        const visibleQuestions = $('.wpProQuiz_listItem:visible').length;
+        
+        console.log(`[LilacQuiz] 📊 Quiz Analysis: ${totalQuestions} total questions, ${visibleQuestions} currently visible`);
         
         // Get all quiz questions
         $('.wpProQuiz_listItem').each(function(index) {
@@ -169,32 +197,871 @@ if (typeof jQuery !== 'undefined') {
             // Store basic question information
             questionData[questionId] = {
                 id: questionId,
+                element: $question,
+                answers: [],
                 hasHint: $question.find('.wpProQuiz_TipButton, .wpProQuiz_hint').length > 0,
-                correctAnswerFound: false
+                correctAnswerFound: false,
+                isVisible: $question.is(':visible')
             };
         });
         
-        // Auto-trigger quiz data retrieval if quiz detected
-        if ($('.wpProQuiz_listItem').length > 0) {
-            console.log('[LilacQuiz] Quiz detected, retrieving quiz data...');
-            // Try to get quiz ID from various sources
-            let quizId = 1; // Default
+        // Store quiz metadata
+        window.lilacQuizMeta = {
+            totalQuestions: totalQuestions,
+            visibleQuestions: visibleQuestions,
+            questionsWithHints: Object.values(questionData).filter(q => q.hasHint).length,
+            lastScanned: new Date().toISOString()
+        };
+        
+        // Auto-trigger quiz data retrieval for current question
+        if (totalQuestions > 0) {
+            console.log(`[LilacQuiz] Quiz detected with ${totalQuestions} questions, retrieving data for current question...`);
+            fetchAnswersForCurrentQuestion();
             
-            // Try to find quiz ID from form or other elements
-            const $quizForm = $('.wpProQuiz_content form');
-            if ($quizForm.length) {
-                const formAction = $quizForm.attr('action') || '';
-                const quizIdMatch = formAction.match(/quiz[_-]?(\d+)/i);
-                if (quizIdMatch) {
-                    quizId = parseInt(quizIdMatch[1]);
+            // Set up question change monitoring
+            setupQuestionChangeDetection();
+        }
+    }
+
+    /**
+     * Monitor for question changes and fetch new data when questions change
+     */
+    function setupQuestionChangeDetection() {
+        let currentQuestionId = getCurrentQuestionId();
+        console.log(`[LilacQuiz] Setting up question change detection. Current question: ${currentQuestionId}`);
+        
+        // Monitor for DOM changes that indicate question navigation
+        const observer = new MutationObserver(function(mutations) {
+            const newQuestionId = getCurrentQuestionId();
+            
+            if (newQuestionId !== currentQuestionId) {
+                console.log(`[LilacQuiz] 🔄 Question changed: ${currentQuestionId} → ${newQuestionId}`);
+                currentQuestionId = newQuestionId;
+                
+                // Fetch answers for the new question
+                setTimeout(() => {
+                    fetchAnswersForCurrentQuestion();
+                }, 500); // Small delay to ensure DOM is stable
+            }
+        });
+        
+        // Observe the quiz container for changes
+        const quizContainer = document.querySelector('.wpProQuiz_content') || document.body;
+        observer.observe(quizContainer, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style', 'class']
+        });
+        
+        // Also monitor for Next/Back button clicks and answer selections
+        $(document).on('click', '.wpProQuiz_button[name="next"], .wpProQuiz_button[name="back"], .lilac-force-next', function() {
+            console.log('[LilacQuiz] Navigation button clicked, checking for question change...');
+            
+            setTimeout(() => {
+                const newQuestionId = getCurrentQuestionId();
+                if (newQuestionId !== currentQuestionId) {
+                    console.log(`[LilacQuiz] 🔄 Question changed via button: ${currentQuestionId} → ${newQuestionId}`);
+                    currentQuestionId = newQuestionId;
+                    fetchAnswersForCurrentQuestion();
                 }
+            }, 1000); // Longer delay for navigation
+        });
+
+        // Monitor for answer selections to trigger DOM extraction and debugging
+        $(document).on('click', '.wpProQuiz_questionInput, .wpProQuiz_questionListItem', function() {
+            console.log('[LilacQuiz] Answer interaction detected, triggering DOM extraction and debugging...');
+            
+            setTimeout(() => {
+                const currentQuestionId = getCurrentQuestionId();
+                
+                // Trigger debugging immediately
+                debugCurrentAnswerState(currentQuestionId);
+                
+                // Extract DOM answers
+                const domAnswers = extractAnswersFromDOM(currentQuestionId);
+                if (domAnswers && domAnswers.length > 0) {
+                    const quizId = getFallbackQuizId();
+                    displayQuizDataFromDOM(quizId, currentQuestionId, domAnswers);
+                }
+            }, 500); // Short delay to let DOM update
+        });
+
+        // Monitor for check button clicks to debug answer validation
+        $(document).on('click', '.wpProQuiz_button[name="check"]', function() {
+            console.log('[LilacQuiz] 🔍 Check button clicked - debugging answer validation...');
+            
+            // Capture state before submission
+            const currentQuestionId = getCurrentQuestionId();
+            const preSubmissionState = debugCurrentAnswerState(currentQuestionId);
+            
+            // Multiple analysis points to catch validation changes
+            setTimeout(() => {
+                console.log('[LilacQuiz] 🔍 IMMEDIATE POST-SUBMISSION Analysis (500ms):');
+                debugCurrentAnswerState(currentQuestionId);
+            }, 500);
+            
+            setTimeout(() => {
+                console.log('[LilacQuiz] 🔍 DELAYED POST-SUBMISSION Analysis (1500ms):');
+                const postSubmissionState = debugCurrentAnswerState(currentQuestionId);
+                
+                // Enhanced comparison analysis
+                console.log('[LilacQuiz] 📊 COMPREHENSIVE SUBMISSION ANALYSIS:');
+                console.log('   Pre-submission selected:', preSubmissionState.selectedAnswers);
+                console.log('   Post-submission feedback:', postSubmissionState.feedbackMessages);
+                
+                // Deep validation analysis
+                performValidationInversionAnalysis(currentQuestionId, preSubmissionState, postSubmissionState);
+                
+            }, 1500);
+            
+            setTimeout(() => {
+                console.log('[LilacQuiz] 🔍 FINAL POST-SUBMISSION Analysis (3000ms):');
+                debugCurrentAnswerState(currentQuestionId);
+            }, 3000);
+        });
+
+        // Add global debugging function for manual testing
+        window.lilacDebugAnswer = function(questionId) {
+            if (!questionId) questionId = getCurrentQuestionId();
+            return debugCurrentAnswerState(questionId);
+        };
+    }
+
+    /**
+     * Perform comprehensive validation inversion analysis
+     */
+    function performValidationInversionAnalysis(questionId, preState, postState) {
+        console.log('[LilacQuiz] 🔬 PERFORMING VALIDATION INVERSION ANALYSIS:');
+        
+        // Get current AJAX data if available
+        const ajaxData = window.currentQuestionData;
+        
+        // Analyze feedback patterns
+        const feedbackAnalysis = {
+            hasCorrectFeedback: postState.feedbackMessages.some(msg => 
+                msg.includes('נכונה') || msg.includes('כל הכבוד') || msg.includes('correct')
+            ),
+            hasWrongFeedback: postState.feedbackMessages.some(msg => 
+                msg.includes('שגויה') || msg.includes('incorrect') || msg.includes('wrong')
+            ),
+            feedbackMessages: postState.feedbackMessages
+        };
+        
+        // Analyze DOM validation markers
+        const domAnalysis = {
+            correctMarkers: postState.allAnswers.filter(a => 
+                a.hasCorrectClass || a.hasCorrectResult || a.parentHasCorrect
+            ),
+            incorrectMarkers: postState.allAnswers.filter(a => 
+                a.hasIncorrectResult || a.parentHasIncorrect
+            ),
+            selectedAnswers: postState.allAnswers.filter(a => a.isSelected)
+        };
+        
+        console.log('   📝 Feedback Analysis:', feedbackAnalysis);
+        console.log('   🎯 DOM Analysis:', domAnalysis);
+        
+        // Check for validation inversion patterns
+        const inversionChecks = [];
+        
+        // Pattern 1: Selected answer matches AJAX correct but got wrong feedback
+        if (ajaxData && ajaxData.correctAnswers) {
+            const selectedTexts = postState.selectedAnswers.map(a => a.text);
+            const ajaxCorrectTexts = ajaxData.correctAnswers.map(a => 
+                typeof a === 'string' ? a : a.text
+            );
+            
+            const hasMatchingCorrect = selectedTexts.some(selected => 
+                ajaxCorrectTexts.some(correct => 
+                    selected.trim().toLowerCase() === correct.trim().toLowerCase() ||
+                    selected.includes(correct) || correct.includes(selected)
+                )
+            );
+            
+            if (hasMatchingCorrect && feedbackAnalysis.hasWrongFeedback) {
+                inversionChecks.push({
+                    type: 'AJAX_FEEDBACK_MISMATCH',
+                    severity: 'HIGH',
+                    description: 'Selected answer matches AJAX correct data but received wrong feedback',
+                    selectedAnswers: selectedTexts,
+                    ajaxCorrect: ajaxCorrectTexts,
+                    feedback: feedbackAnalysis.feedbackMessages
+                });
+            }
+        }
+        
+        // Pattern 2: DOM shows correct markers but feedback says wrong
+        if (domAnalysis.correctMarkers.length > 0 && feedbackAnalysis.hasWrongFeedback) {
+            inversionChecks.push({
+                type: 'DOM_FEEDBACK_MISMATCH',
+                severity: 'MEDIUM',
+                description: 'DOM shows correct answer markers but feedback indicates wrong answer',
+                domCorrectMarkers: domAnalysis.correctMarkers.map(a => a.text),
+                feedback: feedbackAnalysis.feedbackMessages
+            });
+        }
+        
+        // Pattern 3: Selected answers have correct DOM markers but wrong feedback
+        const selectedWithCorrectMarkers = domAnalysis.selectedAnswers.filter(a => 
+            a.hasCorrectClass || a.hasCorrectResult || a.parentHasCorrect
+        );
+        
+        if (selectedWithCorrectMarkers.length > 0 && feedbackAnalysis.hasWrongFeedback) {
+            inversionChecks.push({
+                type: 'SELECTED_CORRECT_WRONG_FEEDBACK',
+                severity: 'HIGH',
+                description: 'Selected answers have correct DOM markers but received wrong feedback',
+                selectedCorrectAnswers: selectedWithCorrectMarkers.map(a => a.text),
+                feedback: feedbackAnalysis.feedbackMessages
+            });
+        }
+        
+        // Report findings
+        if (inversionChecks.length > 0) {
+            console.log('[LilacQuiz] 🚨 VALIDATION INVERSION DETECTED:');
+            inversionChecks.forEach((check, index) => {
+                console.log(`   ${index + 1}. ${check.type} (${check.severity}):`);
+                console.log(`      ${check.description}`);
+                console.log(`      Details:`, check);
+            });
+            
+            // Store inversion data for further analysis
+            window.lilacValidationInversions = window.lilacValidationInversions || [];
+            window.lilacValidationInversions.push({
+                questionId,
+                timestamp: new Date().toISOString(),
+                inversions: inversionChecks,
+                preState,
+                postState
+            });
+            
+        } else {
+            console.log('[LilacQuiz] ✅ No validation inversion detected - validation appears consistent');
+        }
+        
+        return inversionChecks;
+    }
+
+    /**
+     * Fix answer marking system to correctly identify and mark right/wrong answers
+     */
+    function fixAnswerMarkingSystem(questionId) {
+        console.log(`[LilacQuiz] 🔧 FIXING Answer Marking System for Question ${questionId}`);
+        
+        const $questionList = $(`.wpProQuiz_questionList[data-question_id="${questionId}"]`);
+        if ($questionList.length === 0) {
+            console.log('   ❌ No question list found for fixing');
+            return false;
+        }
+
+        // Get AJAX correct answers if available
+        const ajaxData = window.currentQuestionData;
+        let correctAnswerTexts = [];
+        
+        if (ajaxData && ajaxData.correctAnswers) {
+            correctAnswerTexts = ajaxData.correctAnswers.map(a => 
+                typeof a === 'string' ? a.trim() : (a.text || '').trim()
+            );
+            console.log('   🎯 Using AJAX correct answers:', correctAnswerTexts);
+        }
+
+        // Get selected answers
+        const selectedAnswers = [];
+        $questionList.find('.wpProQuiz_questionListItem').each(function() {
+            const $item = $(this);
+            const isSelected = $item.hasClass('is-selected') || $item.find('input:checked').length > 0;
+            if (isSelected) {
+                const text = $item.find('.wpProQuiz_questionListItemText').text().trim();
+                selectedAnswers.push({ element: $item, text: text });
+            }
+        });
+
+        console.log('   📝 Selected answers:', selectedAnswers.map(a => a.text));
+
+        // Check if selected answers should be correct based on AJAX data
+        let shouldBeCorrect = false;
+        if (correctAnswerTexts.length > 0 && selectedAnswers.length > 0) {
+            shouldBeCorrect = selectedAnswers.some(selected => 
+                correctAnswerTexts.some(correct => 
+                    selected.text.toLowerCase().includes(correct.toLowerCase()) ||
+                    correct.toLowerCase().includes(selected.text.toLowerCase()) ||
+                    selected.text.trim() === correct.trim()
+                )
+            );
+        }
+
+        console.log('   🔍 Should selected answers be correct?', shouldBeCorrect);
+
+        // Get current feedback to determine actual validation result
+        const feedbackMessages = [];
+        $('.wpProQuiz_response').each(function() {
+            const text = $(this).text().trim();
+            if (text) feedbackMessages.push(text);
+        });
+
+        const hasCorrectFeedback = feedbackMessages.some(msg => 
+            msg.includes('נכונה') || msg.includes('כל הכבוד') || msg.includes('correct')
+        );
+        const hasWrongFeedback = feedbackMessages.some(msg => 
+            msg.includes('שגויה') || msg.includes('incorrect') || msg.includes('wrong')
+        );
+
+        console.log('   💬 Feedback analysis:', { hasCorrectFeedback, hasWrongFeedback, messages: feedbackMessages });
+
+        // Detect validation inversion
+        const hasInversion = (shouldBeCorrect && hasWrongFeedback) || (!shouldBeCorrect && hasCorrectFeedback);
+        
+        if (hasInversion) {
+            console.log('   🚨 VALIDATION INVERSION DETECTED - Applying fix...');
+            
+            // Apply visual correction to DOM elements
+            $questionList.find('.wpProQuiz_questionListItem').each(function() {
+                const $item = $(this);
+                const text = $item.find('.wpProQuiz_questionListItemText').text().trim();
+                const isSelected = $item.hasClass('is-selected') || $item.find('input:checked').length > 0;
+                
+                if (isSelected) {
+                    // Determine if this answer should be marked as correct
+                    const shouldBeCorrectAnswer = correctAnswerTexts.some(correct => 
+                        text.toLowerCase().includes(correct.toLowerCase()) ||
+                        correct.toLowerCase().includes(text.toLowerCase()) ||
+                        text.trim() === correct.trim()
+                    );
+                    
+                    if (shouldBeCorrectAnswer) {
+                        // Mark as correct (override wrong marking)
+                        $item.removeClass('wpProQuiz_answerIncorrect')
+                             .addClass('wpProQuiz_answerCorrect');
+                        
+                        // Add correct status indicator
+                        if ($item.find('.ld-quiz-question-item__status--correct').length === 0) {
+                            $item.append('<span class="ld-quiz-question-item__status--correct" style="color: green; font-weight: bold;">✓</span>');
+                        }
+                        
+                        // Update visual styling
+                        $item.css({
+                            'background-color': '#d4edda',
+                            'border-color': '#c3e6cb',
+                            'color': '#155724'
+                        });
+                        
+                        console.log(`   ✅ Fixed: Marked "${text}" as CORRECT`);
+                    } else {
+                        // Mark as incorrect
+                        $item.removeClass('wpProQuiz_answerCorrect')
+                             .addClass('wpProQuiz_answerIncorrect');
+                        
+                        // Remove any correct indicators
+                        $item.find('.ld-quiz-question-item__status--correct').remove();
+                        
+                        // Update visual styling
+                        $item.css({
+                            'background-color': '#f8d7da',
+                            'border-color': '#f5c6cb',
+                            'color': '#721c24'
+                        });
+                        
+                        console.log(`   ❌ Fixed: Marked "${text}" as INCORRECT`);
+                    }
+                }
+            });
+            
+            // Update feedback messages if needed
+            if (shouldBeCorrect && hasWrongFeedback) {
+                $('.wpProQuiz_response').each(function() {
+                    const $response = $(this);
+                    const text = $response.text();
+                    
+                    if (text.includes('שגויה') || text.includes('incorrect')) {
+                        $response.html('<span style="color: green; font-weight: bold;">✓ תשובה נכונה! (מתוקן אוטומטית)</span>');
+                        console.log('   📝 Updated feedback message to correct');
+                    }
+                });
             }
             
-            // Trigger the quiz data retrieval
-            setTimeout(() => {
-                retrieveQuizAnswers(quizId);
-            }, 1000);
+            // Store correction data
+            window.lilacAnswerCorrections = window.lilacAnswerCorrections || [];
+            window.lilacAnswerCorrections.push({
+                questionId,
+                timestamp: new Date().toISOString(),
+                correctionType: shouldBeCorrect ? 'wrong_to_correct' : 'correct_to_wrong',
+                selectedAnswers: selectedAnswers.map(a => a.text),
+                ajaxCorrectAnswers: correctAnswerTexts,
+                originalFeedback: feedbackMessages
+            });
+            
+            console.log('   ✅ Answer marking system fixed successfully');
+            return true;
+            
+        } else {
+            console.log('   ✅ No validation inversion detected - answer marking is correct');
+            return false;
         }
+    }
+
+    /**
+     * Auto-trigger answer marking fix after validation
+     */
+    function autoFixAnswerMarking() {
+        // Monitor for validation completion and auto-fix if needed
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                // Check if feedback elements were added/modified
+                if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                    const $target = $(mutation.target);
+                    
+                    // If feedback response was updated
+                    if ($target.hasClass('wpProQuiz_response') || $target.find('.wpProQuiz_response').length > 0) {
+                        setTimeout(() => {
+                            const currentQuestionId = getCurrentQuestionId();
+                            console.log('[LilacQuiz] 🔧 Auto-triggering answer marking fix...');
+                            fixAnswerMarkingSystem(currentQuestionId);
+                        }, 1000); // Delay to ensure DOM is stable
+                    }
+                }
+            });
+        });
+        
+        // Observe the quiz container for feedback changes
+        const quizContainer = document.querySelector('.wpProQuiz_content') || document.body;
+        observer.observe(quizContainer, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+        
+        console.log('[LilacQuiz] 🔧 Auto-fix answer marking system activated');
+    }
+
+    // Add global function for manual answer fixing
+    window.lilacFixAnswers = function(questionId) {
+        if (!questionId) questionId = getCurrentQuestionId();
+        return fixAnswerMarkingSystem(questionId);
+    };
+
+    /**
+     * Fetch answers for the currently visible question using existing LearnDash system
+     */
+    function fetchAnswersForCurrentQuestion() {
+        // PRIMARY: Use existing LearnDash detection system if available
+        if (window.quizDetector && window.quizDetector.detectIds && window.quizDetector.detectQuestionId) {
+            console.log('[LilacQuiz] 🎯 Using existing LearnDash detection system');
+            
+            const quizIds = window.quizDetector.detectIds();
+            const questionIds = window.quizDetector.detectQuestionId();
+            
+            const quizId = quizIds.proQuizId || quizIds.learnDashId || 1;
+            const questionId = questionIds.proQuizId || questionIds.postQuestionId || 1;
+            
+            console.log(`[LilacQuiz] LearnDash detected - Quiz:${quizId} Question:${questionId}`);
+            
+            // Try to get existing answer data from LearnDash system
+            if (window.quizDetector.correctAnswers) {
+                console.log('[LilacQuiz] ✅ Using cached answers from LearnDash system');
+                displayQuizDataFromLearnDash(quizId, questionId, window.quizDetector.correctAnswers);
+                return;
+            }
+            
+            // Trigger LearnDash fetch if no cached data
+            if (window.quizDetector.fetchAnswers) {
+                console.log('[LilacQuiz] 🔄 Triggering LearnDash answer fetch');
+                window.quizDetector.fetchAnswers(quizId, questionId)
+                    .then(data => {
+                        if (data) {
+                            displayQuizDataFromLearnDash(quizId, questionId, data);
+                        } else {
+                            fallbackAnswerFetch(quizId, questionId);
+                        }
+                    })
+                    .catch(() => {
+                        fallbackAnswerFetch(quizId, questionId);
+                    });
+                return;
+            }
+        }
+        
+        // FALLBACK: Use our custom detection if LearnDash system unavailable
+        console.log('[LilacQuiz] ⚠️ LearnDash system unavailable, using fallback');
+        const quizId = getFallbackQuizId();
+        const questionId = getFallbackQuestionId();
+        fallbackAnswerFetch(quizId, questionId);
+    }
+
+    /**
+     * Display quiz data from LearnDash system
+     */
+    function displayQuizDataFromLearnDash(quizId, questionId, answerData) {
+        console.log(`[LilacQuiz] 🔍 DEBUGGING LearnDash Data:`, answerData);
+        
+        // Handle both array format and object format from AJAX
+        let answers = [];
+        let correctAnswers = [];
+        
+        if (Array.isArray(answerData)) {
+            answers = answerData;
+            correctAnswers = answerData.filter(a => a.correct).map(a => a.text);
+        } else if (answerData && answerData.answers) {
+            // Handle AJAX response format: {question_id, answers: [...]}
+            answers = answerData.answers;
+            correctAnswers = answerData.answers.filter(a => a.correct).map(a => a.text);
+            console.log(`[LilacQuiz] 📋 AJAX Format - Question: ${answerData.question_text}`);
+            console.log(`[LilacQuiz] 📝 All Answers:`, answers);
+            console.log(`[LilacQuiz] ✅ Correct Answers:`, correctAnswers);
+        }
+        
+        const quizData = {
+            quiz_id: quizId,
+            question_id: questionId,
+            questions: [{
+                id: questionId,
+                correct_answers: correctAnswers,
+                all_answers: answers,
+                source: 'LearnDash System',
+                raw_data: answerData // Include raw data for debugging
+            }],
+            status: 'success',
+            timestamp: new Date().toISOString(),
+            source: 'LearnDash Detection System'
+        };
+        
+        displayQuizDataInFooter(quizData);
+        
+        // Additional debugging: Check current DOM state
+        setTimeout(() => {
+            debugCurrentAnswerState(questionId);
+        }, 1000);
+    }
+
+    /**
+     * Fallback answer fetching when LearnDash system fails
+     */
+    function fallbackAnswerFetch(quizId, questionId) {
+        console.log(`[LilacQuiz] 🔄 Fallback fetch for Quiz:${quizId} Question:${questionId}`);
+        
+        // Try DOM-based answer detection first
+        const domAnswers = extractAnswersFromDOM(questionId);
+        if (domAnswers && domAnswers.length > 0) {
+            console.log(`[LilacQuiz] ✅ Found ${domAnswers.length} answers from DOM`);
+            displayQuizDataFromDOM(quizId, questionId, domAnswers);
+        } else {
+            // Final fallback to simulated data
+            retrieveQuizAnswers(quizId, questionId);
+        }
+    }
+
+    /**
+     * Extract answers directly from DOM elements
+     */
+    function extractAnswersFromDOM(questionId) {
+        console.log(`[LilacQuiz] 🔍 Extracting answers from DOM for question ${questionId}`);
+        
+        const answers = [];
+        
+        // Find the question list with matching data-question_id
+        const $questionList = $(`.wpProQuiz_questionList[data-question_id="${questionId}"]`);
+        if (!$questionList.length) {
+            console.log(`[LilacQuiz] ❌ No question list found for ID ${questionId}`);
+            return null;
+        }
+        
+        console.log(`[LilacQuiz] 📋 Found question list for ID ${questionId}`);
+        
+        // Extract all answer options
+        $questionList.find('.wpProQuiz_questionListItem').each(function(index) {
+            const $item = $(this);
+            const $input = $item.find('.wpProQuiz_questionInput');
+            const $label = $item.find('label');
+            
+            if ($input.length && $label.length) {
+                const value = $input.val();
+                const text = $label.text().trim().replace(/^\d+\.\s*/, ''); // Remove number prefix
+                const isSelected = $item.hasClass('is-selected') || $input.is(':checked');
+                
+                // Check if this answer has correct status indicator
+                const $correctStatus = $item.find('.ld-quiz-question-item__status--correct');
+                const hasCorrectIndicator = $correctStatus.length > 0;
+                
+                const answer = {
+                    value: value,
+                    text: text,
+                    position: index,
+                    isSelected: isSelected,
+                    hasCorrectIndicator: hasCorrectIndicator,
+                    correct: false // Will be determined by feedback
+                };
+                
+                answers.push(answer);
+                console.log(`[LilacQuiz] 📝 Answer ${index + 1}: "${text}" (Selected: ${isSelected}, Has Indicator: ${hasCorrectIndicator})`);
+            }
+        });
+        
+        console.log(`[LilacQuiz] 📊 Extracted ${answers.length} answers from DOM`);
+        return answers.length > 0 ? answers : null;
+    }
+
+    /**
+     * Display quiz data extracted from DOM
+     */
+    function displayQuizDataFromDOM(quizId, questionId, domAnswers) {
+        const quizData = {
+            quiz_id: quizId,
+            question_id: questionId,
+            questions: [{
+                id: questionId,
+                correct_answers: domAnswers.filter(a => a.hasCorrectIndicator).map(a => a.text),
+                all_answers: domAnswers,
+                source: 'DOM Extraction'
+            }],
+            status: 'success',
+            timestamp: new Date().toISOString(),
+            source: 'DOM-based Detection'
+        };
+        
+        displayQuizDataInFooter(quizData);
+        console.log(`[LilacQuiz] ✅ DOM extraction complete: ${domAnswers.length} answers found`);
+    }
+
+    /**
+     * Get quiz ID using fallback methods
+     */
+    function getFallbackQuizId() {
+        // Try to find quiz ID from form or other elements
+        const $quizForm = $('.wpProQuiz_content form');
+        if ($quizForm.length) {
+            const formAction = $quizForm.attr('action') || '';
+            const quizIdMatch = formAction.match(/quiz[_-]?(\d+)/i);
+            if (quizIdMatch) {
+                return parseInt(quizIdMatch[1]);
+            }
+        }
+        
+        // Try body class
+        const bodyClasses = document.body.className;
+        const postIdMatch = bodyClasses.match(/postid-(\d+)/);
+        if (postIdMatch) {
+            return parseInt(postIdMatch[1]);
+        }
+        
+        return 1; // Default
+    }
+
+    /**
+     * Get question ID using fallback methods
+     */
+    function getFallbackQuestionId() {
+        return getCurrentQuestionId();
+    }
+
+    /**
+     * Get the current question ID from the visible question
+     */
+    function getCurrentQuestionId() {
+        // Try to find question ID from visible question
+        const $currentQuestion = $('.wpProQuiz_listItem:visible').first();
+        if ($currentQuestion.length) {
+            const questionIndex = $currentQuestion.index();
+            return questionIndex + 1;
+        }
+        
+        // Fallback: look for question input names
+        const $questionInput = $('input[name*="question_"]:visible').first();
+        if ($questionInput.length) {
+            const nameMatch = $questionInput.attr('name').match(/question_\d+_(\d+)/);
+            if (nameMatch) {
+                return parseInt(nameMatch[1]);
+            }
+        }
+        
+        // Default to question 1
+        return 1;
+    }
+
+    /**
+     * Get current question position in the quiz
+     */
+    function getCurrentQuestionPosition() {
+        const totalQuestions = window.lilacQuizMeta ? window.lilacQuizMeta.totalQuestions : $('.wpProQuiz_listItem').length;
+        const currentQuestionId = getCurrentQuestionId();
+        return {
+            current: currentQuestionId,
+            total: totalQuestions,
+            progress: totalQuestions > 0 ? Math.round((currentQuestionId / totalQuestions) * 100) : 0
+        };
+    }
+
+    /**
+     * Debug current answer state for validation analysis
+     */
+    function debugCurrentAnswerState(questionId) {
+        console.log(`[LilacQuiz] 🔍 DEBUGGING Answer State for Question ${questionId}:`);
+        
+        const $questionList = $(`.wpProQuiz_questionList[data-question_id="${questionId}"]`);
+        if ($questionList.length === 0) {
+            console.log('   ❌ No question list found for this question ID');
+            return { selectedAnswers: [], allAnswers: [], feedbackMessages: [] };
+        }
+
+        // Get selected answers
+        const selectedAnswers = [];
+        $questionList.find('.wpProQuiz_questionListItem').each(function() {
+            const $item = $(this);
+            const isSelected = $item.hasClass('is-selected') || $item.find('input:checked').length > 0;
+            if (isSelected) {
+                const text = $item.find('.wpProQuiz_questionListItemText').text().trim();
+                const value = $item.find('input').val();
+                selectedAnswers.push({ text, value });
+            }
+        });
+
+        // Get all answers with their validation states
+        const allAnswers = [];
+        $questionList.find('.wpProQuiz_questionListItem').each(function() {
+            const $item = $(this);
+            const text = $item.find('.wpProQuiz_questionListItemText').text().trim();
+            const value = $item.find('input').val();
+            const isSelected = $item.hasClass('is-selected') || $item.find('input:checked').length > 0;
+            
+            // Check multiple indicators for correct answers
+            const hasCorrectClass = $item.find('.ld-quiz-question-item__status--correct').length > 0;
+            const hasCorrectResult = $item.hasClass('wpProQuiz_answerCorrect');
+            const hasIncorrectResult = $item.hasClass('wpProQuiz_answerIncorrect');
+            const parentHasCorrect = $item.closest('.wpProQuiz_answerCorrect').length > 0;
+            const parentHasIncorrect = $item.closest('.wpProQuiz_answerIncorrect').length > 0;
+            
+            allAnswers.push({ 
+                text, 
+                value, 
+                isSelected, 
+                hasCorrectClass,
+                hasCorrectResult,
+                hasIncorrectResult,
+                parentHasCorrect,
+                parentHasIncorrect
+            });
+        });
+
+        // Get feedback messages
+        const feedbackMessages = [];
+        $('.wpProQuiz_response').each(function() {
+            const text = $(this).text().trim();
+            if (text) feedbackMessages.push(text);
+        });
+
+        // Get result classes
+        const correctResults = $('.wpProQuiz_answerCorrect').length;
+        const incorrectResults = $('.wpProQuiz_answerIncorrect').length;
+
+        console.log('   📝 Selected Answers:', selectedAnswers);
+        console.log('   📋 All Answers (with validation states):', allAnswers);
+        console.log('   💬 Feedback Messages:', feedbackMessages);
+        console.log('   ✅ Correct Results:', correctResults);
+        console.log('   ❌ Incorrect Results:', incorrectResults);
+
+        // Advanced validation analysis
+        const validationAnalysis = analyzeAnswerValidation(selectedAnswers, allAnswers, feedbackMessages);
+        console.log('   🔬 Validation Analysis:', validationAnalysis);
+
+        // Compare with AJAX correct answers if available
+        if (window.currentQuestionData && window.currentQuestionData.correctAnswers) {
+            console.log('   🎯 AJAX Correct Answers:', window.currentQuestionData.correctAnswers);
+            
+            const inversionCheck = checkValidationInversion(selectedAnswers, window.currentQuestionData.correctAnswers, feedbackMessages);
+            if (inversionCheck.hasInversion) {
+                console.log('   🚨 VALIDATION INVERSION DETECTED:', inversionCheck.reason);
+            }
+        }
+
+        return { selectedAnswers, allAnswers, feedbackMessages, validationAnalysis };
+    }
+
+    /**
+     * Analyze answer validation patterns to detect issues
+     */
+    function analyzeAnswerValidation(selectedAnswers, allAnswers, feedbackMessages) {
+        const analysis = {
+            selectedCount: selectedAnswers.length,
+            totalAnswers: allAnswers.length,
+            correctMarkedAnswers: allAnswers.filter(a => a.hasCorrectClass || a.hasCorrectResult || a.parentHasCorrect),
+            incorrectMarkedAnswers: allAnswers.filter(a => a.hasIncorrectResult || a.parentHasIncorrect),
+            hasWrongFeedback: feedbackMessages.some(msg => msg.includes('שגויה')),
+            hasCorrectFeedback: feedbackMessages.some(msg => msg.includes('נכונה')),
+            possibleIssues: []
+        };
+
+        // Detect potential issues
+        if (analysis.selectedCount === 0) {
+            analysis.possibleIssues.push('No answers selected');
+        }
+
+        if (analysis.correctMarkedAnswers.length === 0 && analysis.hasCorrectFeedback) {
+            analysis.possibleIssues.push('Got correct feedback but no answers marked as correct in DOM');
+        }
+
+        if (analysis.correctMarkedAnswers.length > 0 && analysis.hasWrongFeedback) {
+            analysis.possibleIssues.push('DOM shows correct answers but feedback says wrong');
+        }
+
+        return analysis;
+    }
+
+    /**
+     * Check for validation inversion between AJAX data and feedback
+     */
+    function checkValidationInversion(selectedAnswers, ajaxCorrectAnswers, feedbackMessages) {
+        const hasWrongFeedback = feedbackMessages.some(msg => msg.includes('שגויה'));
+        const hasCorrectFeedback = feedbackMessages.some(msg => msg.includes('נכונה'));
+        
+        if (selectedAnswers.length === 0 || ajaxCorrectAnswers.length === 0) {
+            return { hasInversion: false, reason: 'Insufficient data for comparison' };
+        }
+
+        const selectedTexts = selectedAnswers.map(a => a.text);
+        
+        // Enhanced matching logic to handle different answer formats
+        const isSelectedInCorrect = selectedTexts.some(selectedText => {
+            return ajaxCorrectAnswers.some(correctAnswer => {
+                // Handle both string and object formats
+                const correctText = typeof correctAnswer === 'string' ? correctAnswer : correctAnswer.text;
+                
+                if (!correctText) return false;
+                
+                // Multiple matching strategies
+                const exactMatch = correctText.trim() === selectedText.trim();
+                const containsMatch = correctText.includes(selectedText) || selectedText.includes(correctText);
+                const caseInsensitiveMatch = correctText.toLowerCase().includes(selectedText.toLowerCase()) ||
+                                           selectedText.toLowerCase().includes(correctText.toLowerCase());
+                
+                return exactMatch || containsMatch || caseInsensitiveMatch;
+            });
+        });
+        
+        // Check for validation inversion
+        if (isSelectedInCorrect && hasWrongFeedback) {
+            console.log('[LilacQuiz] 🚨 INVERSION: Selected correct answer but got wrong feedback');
+            console.log('   Selected:', selectedTexts);
+            console.log('   AJAX Correct:', ajaxCorrectAnswers);
+            console.log('   Feedback:', feedbackMessages);
+            
+            return { 
+                hasInversion: true, 
+                reason: 'Selected answer matches AJAX correct but got wrong feedback - VALIDATION INVERTED' 
+            };
+        } 
+        
+        if (!isSelectedInCorrect && hasCorrectFeedback) {
+            console.log('[LilacQuiz] 🚨 INVERSION: Selected wrong answer but got correct feedback');
+            console.log('   Selected:', selectedTexts);
+            console.log('   AJAX Correct:', ajaxCorrectAnswers);
+            console.log('   Feedback:', feedbackMessages);
+            
+            return { 
+                hasInversion: true, 
+                reason: 'Selected answer does not match AJAX correct but got correct feedback - VALIDATION INVERTED' 
+            };
+        }
+
+        return { hasInversion: false, reason: 'Validation appears consistent' };
     }
 
     /**
@@ -1360,33 +2227,57 @@ function setupEarlyAnswerDetection($question) {
         return;
     }
 
+    // Initialize the plugin when DOM is ready
+    $(document).ready(function() {
+        console.log('[LilacQuiz] DOM ready - initializing plugin...');
+        
+        // Extract question data and set up monitoring
+        extractQuestionData();
+        
+        // Style buttons for consistency
+        styleAllButtons();
+        
+        // Set up answer reselection functionality
+        setupAnswerReselection();
+        
+        // Activate auto-fix answer marking system
+        autoFixAnswerMarking();
+        
+        // Mark as initialized
+        window.lilacQuizInitialized = true;
+        
+        console.log('[LilacQuiz] *** PLUGIN INITIALIZATION COMPLETE ***');
+    });
+    
     // Force immediate initialization - don't wait for document ready
     console.log('[LilacQuiz] *** FORCING IMMEDIATE INITIALIZATION ***');
     
     function initializeQuizSystem() {
         console.log('[LilacQuiz] *** INITIALIZING QUIZ SYSTEM ***');
         if (window.lilacQuizInitialized) {
+            console.log('[LilacQuiz] Already initialized, skipping...');
             return;
         }
         
+        // Extract question data and set up monitoring
+        extractQuestionData();
+        
+        // Style buttons for consistency
+        styleAllButtons();
+        
+        // Set up answer reselection functionality
+        setupAnswerReselection();
+        
+        // Activate auto-fix answer marking system
+        autoFixAnswerMarking();
+        
+        // Mark as initialized
         window.lilacQuizInitialized = true;
         
-        // Force initial hint boxes immediately
-        console.log('[LilacQuiz] *** INJECTING INITIAL HINT BOXES ***');
-        injectInitialHintBoxes();
-        
-        // Initialize core functionality - function doesn't exist, commenting out
-        // initQuizAnswerReselection();
-        setupObserver();
-        setupAnswerObserver();
-        
-        console.log('[LilacQuiz] *** SYSTEM INITIALIZATION COMPLETE ***');
+        console.log('[LilacQuiz] *** PLUGIN INITIALIZATION COMPLETE ***');
     }
     
-    // Try immediate initialization
-    initializeQuizSystem();
-    
-    // Also try on document ready
+    // Document ready handler
     $(document).ready(function() {
         console.log('[LilacQuiz] *** DOCUMENT READY TRIGGERED ***');
         if (!window.lilacQuizInitialized) {

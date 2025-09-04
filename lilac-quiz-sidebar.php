@@ -51,6 +51,15 @@ function lilac_enqueue_question_detector() {
         '1.0.0',
         true
     );
+    
+    // Enqueue the enhanced answer reselection script
+    wp_enqueue_script(
+        'quiz-answer-reselection',
+        plugin_dir_url(__FILE__) . 'assets/js/quiz-answer-reselection.js',
+        array('jquery', 'quiz-question-detector', 'quiz-hint-enforcement'),
+        '1.0.1',
+        true
+    );
 }
 add_action('wp_enqueue_scripts', 'lilac_enqueue_question_detector');
 
