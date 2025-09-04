@@ -1,20 +1,21 @@
 /**
- * LearnDash Quiz - Answer Reselection with Hint Enforcement
+ * LearnDash Quiz - STABILIZED VERSION (Post-Deadline)
  * 
- * Enables users to reselect and submit answers after incorrect submission
- * Part of the Enforce Hint feature for the Lilac Quiz Sidebar plugin
- * Enhanced with modal hint display and correct answer detection
+ * HINT ENFORCEMENT DISABLED FOR STABILITY
+ * Only detection and logging active - no user blocking
+ * Date: 2025-09-04 - Stabilization after deadline
  */
 (function($) {
     'use strict';
     
-    // Configuration
+    // Configuration - ENFORCEMENT DISABLED
     const config = {
         debug: true,
         enforceHintDelay: 300,
         observerDelay: 500,
         tooltipText: 'טעית! להמשך חובה לקחת רמז!',
-        answerDetection: true
+        answerDetection: true,
+        ENFORCEMENT_DISABLED: true  // CRITICAL: Enforcement disabled for stability
     };
     
     // State management
@@ -879,11 +880,6 @@ $(document).ready(function() {
 // Force remove all blocks immediately on load and keep them removed
 forceRemoveAllBlocks();
 
-// Make functions available globally for debugging
-window.forceRemoveAllBlocks = forceRemoveAllBlocks;
-window.blockAllAnswerInputs = blockAllAnswerInputs;
-window.enableAllQuizInputs = enableAllQuizInputs;
-
 /**
  * Create and display hint box at bottom of page
  */
@@ -1004,12 +1000,15 @@ function showCustomHintModal() {
     document.body.appendChild(modal);
 }
 
+// Make functions available globally for debugging
+window.forceRemoveAllBlocks = forceRemoveAllBlocks;
+window.blockAllAnswerInputs = blockAllAnswerInputs;
+window.enableAllQuizInputs = enableAllQuizInputs;
+window.createHintBox = createHintBox;
+
 // Auto-create hint box when page loads
 jQuery(document).ready(function() {
     setTimeout(createHintBox, 1000);
 });
-
-// Make hint box function globally available
-window.createHintBox = createHintBox;
 
 })(jQuery);

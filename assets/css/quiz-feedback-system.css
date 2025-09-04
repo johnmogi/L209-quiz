@@ -1,0 +1,215 @@
+/**
+ * Quiz Feedback System Styles
+ * Simple, clean styling for hint button and feedback messages
+ */
+
+/* Always-visible hint button */
+.lilac-always-hint-button {
+    margin: 20px auto;
+    text-align: center;
+    direction: rtl;
+}
+
+.lilac-always-hint-button .hint-btn {
+    background: #007cba;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+    direction: rtl;
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.lilac-always-hint-button .hint-btn:hover {
+    background: #005a87;
+}
+
+.lilac-always-hint-button .hint-btn:active {
+    transform: translateY(1px);
+}
+
+/* Hint button with icon */
+.lilac-always-hint-button .hint-btn::before {
+    content: "💡";
+    margin-left: 8px;
+}
+
+/* Feedback messages - inline style like screenshots */
+.lilac-feedback-message {
+    margin: 15px auto;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    direction: rtl;
+    max-width: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Correct answer feedback - green with checkmark */
+.lilac-feedback-correct {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.lilac-feedback-correct::after {
+    content: "✓";
+    background: #28a745;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+/* Wrong answer feedback - red with X */
+.lilac-feedback-wrong {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.lilac-feedback-wrong::after {
+    content: "✗";
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+/* Hint feedback */
+.lilac-feedback-hint {
+    background: #6c5ce7;
+    color: white;
+}
+
+/* Hint button in wrong answer feedback */
+.lilac-feedback-message .feedback-hint-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-right: 10px;
+    transition: all 0.3s ease;
+}
+
+.lilac-feedback-message .feedback-hint-btn:hover {
+    background: #c82333;
+}
+
+/* Hint modal overlay */
+.lilac-hint-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.lilac-hint-modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    direction: rtl;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.lilac-hint-modal-close {
+    position: absolute;
+    top: 10px;
+    left: 15px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+}
+
+.lilac-hint-modal-close:hover {
+    color: #000;
+}
+
+.lilac-hint-modal h3 {
+    margin: 0 0 20px 0;
+    color: #333;
+    font-size: 18px;
+}
+
+.lilac-hint-modal p {
+    margin: 0 0 20px 0;
+    color: #666;
+    line-height: 1.5;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .lilac-always-hint-button {
+        bottom: 15px;
+        right: 15px;
+    }
+    
+    .lilac-always-hint-button .hint-btn {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
+    
+    .lilac-feedback-message {
+        min-width: 280px;
+        padding: 18px 25px;
+        font-size: 15px;
+    }
+}
+
+/* Integration with existing quiz styles */
+.wpProQuiz_content + .lilac-always-hint-button {
+    position: relative;
+    bottom: auto;
+    right: auto;
+    margin: 20px auto 0;
+    display: block;
+    text-align: center;
+}
+
+.wpProQuiz_content + .lilac-always-hint-button .hint-btn {
+    position: relative;
+    display: inline-block;
+}

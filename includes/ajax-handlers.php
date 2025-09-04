@@ -132,6 +132,11 @@ function lilac_enhanced_get_quiz_answers() {
     
     error_log("LILAC DEBUG: Enhanced handler - Quiz:$quiz_id Question:$question_id");
     
+    // If no specific question_id, try to get ALL questions for the quiz
+    if (!$question_id && $quiz_id) {
+        return lilac_get_all_quiz_questions($quiz_id);
+    }
+    
     global $wpdb;
     
     // Try multiple table names for ProQuiz
@@ -224,6 +229,177 @@ function lilac_enhanced_get_quiz_answers() {
     ];
     
     error_log("LILAC DEBUG: Response: " . print_r($response, true));
+    wp_send_json_success($response);
+}
+
+/**
+ * Get ALL questions and answers for a quiz
+ */
+function lilac_get_all_quiz_questions($quiz_id) {
+    global $wpdb;
+    
+    // First, try to get the post ID that corresponds to this quiz
+    $post_id = $wpdb->get_var($wpdb->prepare(
+        "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = 'quiz_pro_id' AND meta_value = %d",
+        $quiz_id
+    ));
+    
+    error_log("LILAC DEBUG: Quiz ID $quiz_id maps to Post ID: $post_id");
+    
+    $all_questions = [];
+    $table_used = '';
+    
+    // Get question IDs from LearnDash quiz mapping
+    if ($post_id) {
+        $question_mapping = get_post_meta($post_id, 'ld_quiz_questions', true);
+        error_log("LILAC DEBUG: Question mapping: " . print_r($question_mapping, true));
+        
+        if ($question_mapping && is_array($question_mapping)) {
+            $question_ids = array_values($question_mapping); // Use VALUES, not keys!
+            error_log("LILAC DEBUG: Question IDs to fetch (corrected): " . implode(', ', $question_ids));
+            
+            $possible_tables = [
+                $wpdb->prefix . 'learndash_pro_quiz_question',
+                $wpdb->prefix . 'pro_quiz_question',
+                $wpdb->prefix . 'wp_pro_quiz_question'
+            ];
+            
+            foreach ($possible_tables as $table) {
+                $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table'");
+                if ($table_exists) {
+                    // Get questions by their specific IDs
+                    $placeholders = implode(',', array_fill(0, count($question_ids), '%d'));
+                    $query = "SELECT * FROM $table WHERE id IN ($placeholders) ORDER BY sort ASC";
+                    $questions = $wpdb->get_results($wpdb->prepare($query, ...$question_ids));
+                    
+                    if ($questions) {
+                        $table_used = $table;
+                        error_log("LILAC DEBUG: Found " . count($questions) . " questions in $table");
+                        foreach ($questions as $question) {
+                            $answer_data = @unserialize($question->answer_data);
+                            $formatted_answers = [];
+                            
+                            error_log("LILAC DEBUG: Processing question {$question->id}, answer_data length: " . strlen($question->answer_data ?? ''));
+                            
+                            if ($answer_data && is_array($answer_data)) {
+                                foreach ($answer_data as $index => $answer_obj) {
+                                    if (is_object($answer_obj)) {
+                                        try {
+                                            $reflection = new ReflectionObject($answer_obj);
+                                            
+                                            $answerProp = $reflection->getProperty('_answer');
+                                            $answerProp->setAccessible(true);
+                                            $answer_text = $answerProp->getValue($answer_obj);
+                                            
+                                            $correctProp = $reflection->getProperty('_correct');
+                                            $correctProp->setAccessible(true);
+                                            $is_correct = $correctProp->getValue($answer_obj);
+                                            
+                                            $formatted_answers[] = [
+                                                'index' => $index,
+                                                'text' => strip_tags($answer_text),
+                                                'correct' => (bool) $is_correct
+                                            ];
+                                            
+                                            error_log("LILAC DEBUG: Answer $index: " . strip_tags($answer_text) . " (correct: " . ($is_correct ? 'yes' : 'no') . ")");
+                                        } catch (Exception $e) {
+                                            error_log("LILAC DEBUG: Reflection error: " . $e->getMessage());
+                                        }
+                                    }
+                                }
+                            } else {
+                                error_log("LILAC DEBUG: No valid answer data for question {$question->id}");
+                            }
+                            
+                            $all_questions[] = [
+                                'question_id' => $question->id,
+                                'quiz_id' => $quiz_id, // Use the original quiz_id for consistency
+                                'question_text' => strip_tags($question->question ?? ''),
+                                'answers' => $formatted_answers,
+                                'sort_order' => $question->sort ?? 0
+                            ];
+                        }
+                        break;
+                    }
+                }
+            }
+        } else {
+            error_log("LILAC DEBUG: No question mapping found for post $post_id");
+        }
+    } else {
+        error_log("LILAC DEBUG: No post found for quiz_id $quiz_id");
+        
+        // Fallback: try direct quiz_id query
+        $possible_tables = [
+            $wpdb->prefix . 'learndash_pro_quiz_question',
+            $wpdb->prefix . 'pro_quiz_question',
+            $wpdb->prefix . 'wp_pro_quiz_question'
+        ];
+        
+        foreach ($possible_tables as $table) {
+            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table'");
+            if ($table_exists) {
+                $questions = $wpdb->get_results($wpdb->prepare(
+                    "SELECT * FROM $table WHERE quiz_id = %d ORDER BY sort ASC",
+                    $quiz_id
+                ));
+                
+                if ($questions) {
+                    $table_used = $table;
+                    error_log("LILAC DEBUG: Fallback found " . count($questions) . " questions in $table");
+                    
+                    foreach ($questions as $question) {
+                        $answer_data = @unserialize($question->answer_data);
+                        $formatted_answers = [];
+                        
+                        if ($answer_data && is_array($answer_data)) {
+                            foreach ($answer_data as $index => $answer_obj) {
+                                if (is_object($answer_obj)) {
+                                    try {
+                                        $reflection = new ReflectionObject($answer_obj);
+                                        
+                                        $answerProp = $reflection->getProperty('_answer');
+                                        $answerProp->setAccessible(true);
+                                        $answer_text = $answerProp->getValue($answer_obj);
+                                        
+                                        $correctProp = $reflection->getProperty('_correct');
+                                        $correctProp->setAccessible(true);
+                                        $is_correct = $correctProp->getValue($answer_obj);
+                                        
+                                        $formatted_answers[] = [
+                                            'index' => $index,
+                                            'text' => strip_tags($answer_text),
+                                            'correct' => (bool) $is_correct
+                                        ];
+                                    } catch (Exception $e) {
+                                        error_log("LILAC DEBUG: Reflection error: " . $e->getMessage());
+                                    }
+                                }
+                            }
+                        }
+                        
+                        $all_questions[] = [
+                            'question_id' => $question->id,
+                            'quiz_id' => $question->quiz_id,
+                            'question_text' => strip_tags($question->question ?? ''),
+                            'answers' => $formatted_answers,
+                            'sort_order' => $question->sort ?? 0
+                        ];
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    
+    $response = [
+        'quiz_id' => $quiz_id,
+        'questions' => $all_questions,
+        'total_questions' => count($all_questions),
+        'table_used' => $table_used
+    ];
+    
+    error_log("LILAC DEBUG: All questions response: " . print_r($response, true));
     wp_send_json_success($response);
 }
 

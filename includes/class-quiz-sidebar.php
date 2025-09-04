@@ -250,6 +250,9 @@ class Lilac_Quiz_Sidebar {
      * Enqueue scripts and styles
      */
     public function enqueue_scripts_styles() {
+        error_log('Lilac Quiz Sidebar: enqueue_scripts_styles() called');
+        error_log('Lilac Quiz Sidebar: is_singular(sfwd-quiz): ' . (is_singular('sfwd-quiz') ? 'true' : 'false'));
+        
         if (is_singular('sfwd-quiz')) {
             $quiz_id = get_the_ID();
             $has_sidebar = get_post_meta($quiz_id, self::TOGGLE_SIDEBAR_META_KEY, true);
@@ -355,6 +358,60 @@ class Lilac_Quiz_Sidebar {
                 // Debug info removed for production
             }
             
+            // Always enqueue quiz detector and feedback scripts on quiz pages
+            // Enqueue the enhanced detector script
+            wp_enqueue_script(
+                'quiz-question-detector-enhanced',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-question-detector-enhanced.js',
+                array('jquery'),
+                '2.0.0-enhanced-' . time(),
+                true
+            );
+            
+            // Enqueue the STABLE hint enforcement script
+            wp_enqueue_script(
+                'quiz-hint-enforcement-stable',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-hint-enforcement-stable.js',
+                array('jquery', 'quiz-question-detector-enhanced'),
+                '2.0.0-stable-' . time(),
+                true
+            );
+            
+            // Enqueue the enhanced answer reselection script
+            wp_enqueue_script(
+                'quiz-answer-reselection',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-answer-reselection.js',
+                array('jquery', 'quiz-question-detector-enhanced', 'quiz-hint-enforcement-stable'),
+                '1.0.2-stable',
+                true
+            );
+            
+            // Enqueue the quiz expansion overlay for detailed question viewing
+            wp_enqueue_script(
+                'quiz-expansion-overlay',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-expansion-overlay.js',
+                array('jquery', 'quiz-question-detector-enhanced'),
+                '1.0.0-expansion-' . time(),
+                true
+            );
+            
+            // Enqueue the quiz feedback system for always-visible hint button and answer feedback
+            wp_enqueue_script(
+                'quiz-feedback-system',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-feedback-system.js',
+                array('jquery'),
+                '1.0.0-feedback-' . time(),
+                true
+            );
+            
+            // Enqueue feedback system CSS
+            wp_enqueue_style(
+                'quiz-feedback-system-style',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/css/quiz-feedback-system.css',
+                array(),
+                '1.0.0-feedback-' . time()
+            );
+
             // If hint enforcement is enabled, load that functionality
             if ($enforce_hint === '1') {
                 // Enqueue CSS for hint enforcement

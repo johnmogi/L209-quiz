@@ -32,36 +32,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/ajax-handlers.php';
 // Include quiz debug functionality - temporarily disabled due to reflection errors
 // require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'quiz-debug.php';
 
-// Enqueue the safe detector script
-function lilac_enqueue_question_detector() {
-    // Enqueue the safe detector script
-    wp_enqueue_script(
-        'quiz-question-detector',
-        plugin_dir_url(__FILE__) . 'assets/js/quiz-question-detector-safe.js',
-        array('jquery'),
-        '1.0.0',
-        true
-    );
-    
-    // Enqueue the hint enforcement script
-    wp_enqueue_script(
-        'quiz-hint-enforcement',
-        plugin_dir_url(__FILE__) . 'assets/js/quiz-hint-enforcement.js',
-        array('jquery', 'quiz-question-detector'),
-        '1.0.0',
-        true
-    );
-    
-    // Enqueue the enhanced answer reselection script
-    wp_enqueue_script(
-        'quiz-answer-reselection',
-        plugin_dir_url(__FILE__) . 'assets/js/quiz-answer-reselection.js',
-        array('jquery', 'quiz-question-detector', 'quiz-hint-enforcement'),
-        '1.0.1',
-        true
-    );
-}
-add_action('wp_enqueue_scripts', 'lilac_enqueue_question_detector');
+// Note: Script enqueuing moved to class-quiz-sidebar.php to avoid conflicts
 
 // Initialize the plugin
 function lilac_quiz_sidebar_init() {
