@@ -24,27 +24,13 @@
         currentQuestion: null
     };
     
-    // Debug logger
+    // Debug logger - disabled for production
     const log = {
         info: function(message, data) {
-            if (config.debug) {
-                const prefix = '%c[HINT] ';
-                const style = 'color: #007700;';
-                if (data) {
-                    console.log(prefix + message, style, data);
-                } else {
-                    console.log(prefix + message, style);
-                }
-            }
+            // Debug logging disabled
         },
         error: function(message, data) {
-            const prefix = '%c[HINT ERROR] ';
-            const style = 'color: #c62828;';
-            if (data) {
-                console.error(prefix + message, style, data);
-            } else {
-                console.error(prefix + message, style);
-            }
+            // Error logging disabled
         }
     };
     
@@ -898,35 +884,6 @@ window.forceRemoveAllBlocks = forceRemoveAllBlocks;
 window.blockAllAnswerInputs = blockAllAnswerInputs;
 window.enableAllQuizInputs = enableAllQuizInputs;
 
-// Initialize hint box display on page load
-$(document).ready(function() {
-    // Create and display the hint message box at bottom
-    const hintBox = $('<div class="lilac-hint-message">');
-    hintBox.css({
-        'position': 'fixed',
-        'bottom': '20px',
-        'left': '50%',
-        'transform': 'translateX(-50%)',
-        'background': 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
-        'color': 'white',
-        'padding': '15px 25px',
-        'border-radius': '12px',
-        'font-size': '16px',
-        'font-weight': 'bold',
-        'text-align': 'center',
-        'direction': 'rtl',
-        'box-shadow': '0 4px 20px rgba(0,0,0,0.3)',
-        'z-index': '10000',
-        'max-width': '90%',
-        'border': '2px solid #ffffff40'
-    });
-    
-    hintBox.html('💡 רמזים זמינים - לחץ על כפתור הרמז לעזרה');
-    
-    // Add to page
-    $('body').append(hintBox);
-    
-    log.info('✅ Hint message box displayed at bottom');
-});
+// Hint box display removed for production
 
 })(jQuery);

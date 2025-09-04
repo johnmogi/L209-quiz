@@ -12,43 +12,11 @@ if (typeof jQuery === 'undefined') {
     console.error('Lilac Quiz: jQuery is not loaded!');
 }
 
-// IMMEDIATE TEST - This should show up right away
-console.log('🚀 LILAC QUIZ SCRIPT LOADED - VERSION 2.0 - CLICK COUNTER TEST');
-
-// Global click counter for debugging
-window.lilacClickCounter = 0;
-
-// IMMEDIATE click counter setup - no waiting for document ready
-if (typeof jQuery !== 'undefined') {
-    console.log('✅ jQuery found - setting up click counter NOW');
-    jQuery(document).on('click.lilacDebug', function(e) {
-        window.lilacClickCounter++;
-        const target = e.target;
-        const classes = target.className || '';
-        const id = target.id || '';
-        const tagName = target.tagName;
-        const text = jQuery(target).text().substring(0, 50);
-        
-        console.log(`🖱️ CLICK #${window.lilacClickCounter}: ${tagName}${id ? '#' + id : ''}${classes ? '.' + classes.replace(/\s+/g, '.') : ''} - "${text}"`);
-        
-        // Special logging for quiz elements
-        if (classes.includes('wpProQuiz') || classes.includes('lilac')) {
-            console.log(`   📍 Quiz Element Details:`, {
-                element: target,
-                classes: classes,
-                closest_question: jQuery(target).closest('.wpProQuiz_listItem').length ? 'Found' : 'Not found',
-                is_locked: jQuery(target).closest('.wpProQuiz_listItem').hasClass('lilac-locked'),
-                is_correct_locked: jQuery(target).closest('.wpProQuiz_listItem').hasClass('lilac-correct-locked')
-            });
-        }
-    });
-} else {
-    console.error('❌ jQuery not available for click counter');
-}
+// Debug logging disabled for production
 
     // Quiz Data Retrieval Function
     function retrieveQuizAnswers(quizId, questionId) {
-        console.log(`[LilacQuiz] Retrieving answers for quiz ID: ${quizId}, question ID: ${questionId}`);
+        // Debug logging removed
         
         // This would normally be an AJAX call to a PHP endpoint
         // For now, we'll simulate the data structure with question-specific data
@@ -71,59 +39,8 @@ if (typeof jQuery !== 'undefined') {
     }
     
     function displayQuizDataInFooter(quizData) {
-        // Remove existing debug info
-        jQuery('#lilac-quiz-debug').remove();
-        
-        // Get quiz progress information
-        const position = getCurrentQuestionPosition();
-        const meta = window.lilacQuizMeta || {};
-        
-        // Create debug container with enhanced quiz information
-        const debugHtml = `
-            <div id="lilac-quiz-debug" style="
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                background: rgba(0,0,0,0.9);
-                color: #00ff00;
-                font-family: monospace;
-                font-size: 12px;
-                padding: 10px;
-                z-index: 9999;
-                max-height: 250px;
-                overflow-y: auto;
-                border-top: 2px solid #00ff00;
-            ">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <strong>LILAC Quiz Debug - Quiz ID: ${quizData.quiz_id} | Q: ${position.current}/${position.total} (${position.progress}%) | Source: ${quizData.source || 'Custom'}</strong>
-                    <button onclick="$('#lilac-quiz-debug').remove()" style="background: #ff0000; color: white; border: none; padding: 2px 8px; cursor: pointer;">×</button>
-                </div>
-                <div id="quiz-debug-content">
-                    <div style="color: #ffff00; font-weight: bold;">📊 QUIZ OVERVIEW:</div>
-                    <div>Total Questions in Quiz: ${position.total} ${position.total === 30 ? '(Full Set)' : position.total < 30 ? '(Partial)' : '(Extended)'}</div>
-                    <div>Current Question: ${position.current} of ${position.total}</div>
-                    <div>Progress: ${position.progress}% complete</div>
-                    <div>Questions with Hints: ${meta.questionsWithHints || 'Unknown'}</div>
-                    <div>Visible Questions: ${meta.visibleQuestions || 'Unknown'}</div>
-                    <div style="color: #ffff00; font-weight: bold; margin-top: 8px;">🔍 CURRENT DATA:</div>
-                    <div>Status: ${quizData.status}</div>
-                    <div>Data Source: ${quizData.source || 'Custom System'}</div>
-                    <div>Question ID: ${quizData.question_id || 'Unknown'}</div>
-                    <div>Correct Answers: ${quizData.questions[0] ? (quizData.questions[0].correct_answers.length > 0 ? quizData.questions[0].correct_answers.join(', ') : 'No correct answers found') : 'None'}</div>
-                    <div>All Answers: ${quizData.questions[0] && quizData.questions[0].all_answers ? quizData.questions[0].all_answers.length : 0} total</div>
-                    <div style="color: #ffff00; font-weight: bold; margin-top: 8px;">⚡ SYSTEM:</div>
-                    <div>Click Counter: ${window.lilacClickCounter || 0}</div>
-                    <div>Last Updated: ${quizData.timestamp ? new Date(quizData.timestamp).toLocaleTimeString() : 'N/A'}</div>
-                    <div>Last Scan: ${meta.lastScanned ? new Date(meta.lastScanned).toLocaleTimeString() : 'N/A'}</div>
-                </div>
-            </div>
-        `;
-        
-        // Add to page
-        jQuery('body').append(debugHtml);
-        
-        console.log(`[LilacQuiz] 📊 Debug: Quiz:${quizData.quiz_id} | Q:${position.current}/${position.total} | ${quizData.source || 'Custom'}`);
+        // Debug display disabled for production
+        return;
     }
     
     // Make functions globally available for console testing
@@ -131,22 +48,22 @@ if (typeof jQuery !== 'undefined') {
         retrieveQuizAnswers: retrieveQuizAnswers,
         displayQuizDataInFooter: displayQuizDataInFooter,
         showDebugInfo: function(quizId = 1) {
-            console.log('[LilacQuiz] Manual debug trigger for quiz ID:', quizId);
+            // Debug logging disabled for production
             retrieveQuizAnswers(quizId);
         }
     };
 
     // Main plugin code
 (function($) {
-    console.log('[LilacQuiz] *** SCRIPT LOADED - ENHANCED SYSTEM STARTING ***');
+    // Script initialization - debug logging disabled for production
     
     // Prevent multiple initializations
     if (window.lilacQuizInitialized) {
-        console.log('[LilacQuiz] Already initialized, skipping...');
+        // Already initialized, skipping...
         return;
     }
     
-    console.log('[LilacQuiz] *** DOCUMENT READY - INITIALIZING ***');
+    // Document ready - initializing quiz system
     $('input.wpProQuiz_QuestionButton[name="check"]').each(function() {
         this.setAttribute('style', 'position: absolute !important; opacity: 0.5 !important;');
     });
@@ -170,10 +87,10 @@ if (typeof jQuery !== 'undefined') {
     
     // Logger - only log in development
     const log = {
-        info: function() { if (config.strictLogging) console.log(...arguments); },
-        answer: function() { if (config.strictLogging) console.log(...arguments); },
+        info: function() { /* Debug logging disabled for production */ },
+        answer: function() { /* Debug logging disabled for production */ },
         error: function() { console.error(...arguments); },
-        questionSummary: function() { if (config.strictLogging) console.log(...arguments); },
+        questionSummary: function() { /* Debug logging disabled for production */ },
         warn: function() { console.warn(...arguments); }
     };
     
@@ -187,7 +104,7 @@ if (typeof jQuery !== 'undefined') {
         const totalQuestions = $('.wpProQuiz_listItem').length;
         const visibleQuestions = $('.wpProQuiz_listItem:visible').length;
         
-        console.log(`[LilacQuiz] 📊 Quiz Analysis: ${totalQuestions} total questions, ${visibleQuestions} currently visible`);
+        // console.log(`[LilacQuiz] 📊 Quiz Analysis: ${totalQuestions} total questions, ${visibleQuestions} currently visible`);
         
         // Get all quiz questions
         $('.wpProQuiz_listItem').each(function(index) {
@@ -216,7 +133,7 @@ if (typeof jQuery !== 'undefined') {
         
         // Auto-trigger quiz data retrieval for current question
         if (totalQuestions > 0) {
-            console.log(`[LilacQuiz] Quiz detected with ${totalQuestions} questions, retrieving data for current question...`);
+            // console.log(`[LilacQuiz] Quiz detected with ${totalQuestions} questions, retrieving data for current question...`);
             fetchAnswersForCurrentQuestion();
             
             // Set up question change monitoring
@@ -229,14 +146,14 @@ if (typeof jQuery !== 'undefined') {
      */
     function setupQuestionChangeDetection() {
         let currentQuestionId = getCurrentQuestionId();
-        console.log(`[LilacQuiz] Setting up question change detection. Current question: ${currentQuestionId}`);
+        // console.log(`[LilacQuiz] Setting up question change detection. Current question: ${currentQuestionId}`);
         
         // Monitor for DOM changes that indicate question navigation
         const observer = new MutationObserver(function(mutations) {
             const newQuestionId = getCurrentQuestionId();
             
             if (newQuestionId !== currentQuestionId) {
-                console.log(`[LilacQuiz] 🔄 Question changed: ${currentQuestionId} → ${newQuestionId}`);
+                // console.log(`[LilacQuiz] 🔄 Question changed: ${currentQuestionId} → ${newQuestionId}`);
                 currentQuestionId = newQuestionId;
                 
                 // Fetch answers for the new question
@@ -257,12 +174,12 @@ if (typeof jQuery !== 'undefined') {
         
         // Also monitor for Next/Back button clicks and answer selections
         $(document).on('click', '.wpProQuiz_button[name="next"], .wpProQuiz_button[name="back"], .lilac-force-next', function() {
-            console.log('[LilacQuiz] Navigation button clicked, checking for question change...');
+            // console.log('[LilacQuiz] Navigation button clicked, checking for question change...');
             
             setTimeout(() => {
                 const newQuestionId = getCurrentQuestionId();
                 if (newQuestionId !== currentQuestionId) {
-                    console.log(`[LilacQuiz] 🔄 Question changed via button: ${currentQuestionId} → ${newQuestionId}`);
+                    // console.log(`[LilacQuiz] 🔄 Question changed via button: ${currentQuestionId} → ${newQuestionId}`);
                     currentQuestionId = newQuestionId;
                     fetchAnswersForCurrentQuestion();
                 }
@@ -271,7 +188,7 @@ if (typeof jQuery !== 'undefined') {
 
         // Monitor for answer selections to trigger DOM extraction and debugging
         $(document).on('click', '.wpProQuiz_questionInput, .wpProQuiz_questionListItem', function() {
-            console.log('[LilacQuiz] Answer interaction detected, triggering DOM extraction and debugging...');
+            // console.log('[LilacQuiz] Answer interaction detected, triggering DOM extraction and debugging...');
             
             setTimeout(() => {
                 const currentQuestionId = getCurrentQuestionId();
@@ -290,7 +207,7 @@ if (typeof jQuery !== 'undefined') {
 
         // Monitor for check button clicks to debug answer validation
         $(document).on('click', '.wpProQuiz_button[name="check"]', function() {
-            console.log('[LilacQuiz] 🔍 Check button clicked - debugging answer validation...');
+            // console.log('[LilacQuiz] 🔍 Check button clicked - debugging answer validation...');
             
             // Capture state before submission
             const currentQuestionId = getCurrentQuestionId();
@@ -298,18 +215,18 @@ if (typeof jQuery !== 'undefined') {
             
             // Multiple analysis points to catch validation changes
             setTimeout(() => {
-                console.log('[LilacQuiz] 🔍 IMMEDIATE POST-SUBMISSION Analysis (500ms):');
+                // console.log('[LilacQuiz] 🔍 IMMEDIATE POST-SUBMISSION Analysis (500ms):');
                 debugCurrentAnswerState(currentQuestionId);
             }, 500);
             
             setTimeout(() => {
-                console.log('[LilacQuiz] 🔍 DELAYED POST-SUBMISSION Analysis (1500ms):');
+                // console.log('[LilacQuiz] 🔍 DELAYED POST-SUBMISSION Analysis (1500ms):');
                 const postSubmissionState = debugCurrentAnswerState(currentQuestionId);
                 
                 // Enhanced comparison analysis
-                console.log('[LilacQuiz] 📊 COMPREHENSIVE SUBMISSION ANALYSIS:');
-                console.log('   Pre-submission selected:', preSubmissionState.selectedAnswers);
-                console.log('   Post-submission feedback:', postSubmissionState.feedbackMessages);
+                // console.log('[LilacQuiz] 📊 COMPREHENSIVE SUBMISSION ANALYSIS:');
+                // console.log('   Pre-submission selected:', preSubmissionState.selectedAnswers);
+                // console.log('   Post-submission feedback:', postSubmissionState.feedbackMessages);
                 
                 // Deep validation analysis
                 performValidationInversionAnalysis(currentQuestionId, preSubmissionState, postSubmissionState);
@@ -317,7 +234,7 @@ if (typeof jQuery !== 'undefined') {
             }, 1500);
             
             setTimeout(() => {
-                console.log('[LilacQuiz] 🔍 FINAL POST-SUBMISSION Analysis (3000ms):');
+                // console.log('[LilacQuiz] 🔍 FINAL POST-SUBMISSION Analysis (3000ms):');
                 debugCurrentAnswerState(currentQuestionId);
             }, 3000);
         });
@@ -333,7 +250,7 @@ if (typeof jQuery !== 'undefined') {
      * Perform comprehensive validation inversion analysis
      */
     function performValidationInversionAnalysis(questionId, preState, postState) {
-        console.log('[LilacQuiz] 🔬 PERFORMING VALIDATION INVERSION ANALYSIS:');
+        // console.log('[LilacQuiz] 🔬 PERFORMING VALIDATION INVERSION ANALYSIS:');
         
         // Get current AJAX data if available
         const ajaxData = window.currentQuestionData;
@@ -360,8 +277,8 @@ if (typeof jQuery !== 'undefined') {
             selectedAnswers: postState.allAnswers.filter(a => a.isSelected)
         };
         
-        console.log('   📝 Feedback Analysis:', feedbackAnalysis);
-        console.log('   🎯 DOM Analysis:', domAnalysis);
+        // console.log('   📝 Feedback Analysis:', feedbackAnalysis);
+        // console.log('   🎯 DOM Analysis:', domAnalysis);
         
         // Check for validation inversion patterns
         const inversionChecks = [];
@@ -420,11 +337,11 @@ if (typeof jQuery !== 'undefined') {
         
         // Report findings
         if (inversionChecks.length > 0) {
-            console.log('[LilacQuiz] 🚨 VALIDATION INVERSION DETECTED:');
+            // console.log('[LilacQuiz] 🚨 VALIDATION INVERSION DETECTED:');
             inversionChecks.forEach((check, index) => {
-                console.log(`   ${index + 1}. ${check.type} (${check.severity}):`);
-                console.log(`      ${check.description}`);
-                console.log(`      Details:`, check);
+                // console.log(`   ${index + 1}. ${check.type} (${check.severity}):`);
+                // console.log(`      ${check.description}`);
+                // console.log(`      Details:`, check);
             });
             
             // Store inversion data for further analysis
@@ -438,7 +355,7 @@ if (typeof jQuery !== 'undefined') {
             });
             
         } else {
-            console.log('[LilacQuiz] ✅ No validation inversion detected - validation appears consistent');
+            // console.log('[LilacQuiz] ✅ No validation inversion detected - validation appears consistent');
         }
         
         return inversionChecks;
@@ -448,11 +365,11 @@ if (typeof jQuery !== 'undefined') {
      * Fix answer marking system to correctly identify and mark right/wrong answers
      */
     function fixAnswerMarkingSystem(questionId) {
-        console.log(`[LilacQuiz] 🔧 FIXING Answer Marking System for Question ${questionId}`);
+        // console.log(`[LilacQuiz] 🔧 FIXING Answer Marking System for Question ${questionId}`);
         
         const $questionList = $(`.wpProQuiz_questionList[data-question_id="${questionId}"]`);
         if ($questionList.length === 0) {
-            console.log('   ❌ No question list found for fixing');
+            // console.log('   ❌ No question list found for fixing');
             return false;
         }
 
@@ -464,7 +381,7 @@ if (typeof jQuery !== 'undefined') {
             correctAnswerTexts = ajaxData.correctAnswers.map(a => 
                 typeof a === 'string' ? a.trim() : (a.text || '').trim()
             );
-            console.log('   🎯 Using AJAX correct answers:', correctAnswerTexts);
+            // console.log('   🎯 Using AJAX correct answers:', correctAnswerTexts);
         }
 
         // Get selected answers
@@ -478,7 +395,7 @@ if (typeof jQuery !== 'undefined') {
             }
         });
 
-        console.log('   📝 Selected answers:', selectedAnswers.map(a => a.text));
+        // console.log('   📝 Selected answers:', selectedAnswers.map(a => a.text));
 
         // Check if selected answers should be correct based on AJAX data
         let shouldBeCorrect = false;
@@ -492,7 +409,7 @@ if (typeof jQuery !== 'undefined') {
             );
         }
 
-        console.log('   🔍 Should selected answers be correct?', shouldBeCorrect);
+        // console.log('   🔍 Should selected answers be correct?', shouldBeCorrect);
 
         // Get current feedback to determine actual validation result
         const feedbackMessages = [];
@@ -508,13 +425,13 @@ if (typeof jQuery !== 'undefined') {
             msg.includes('שגויה') || msg.includes('incorrect') || msg.includes('wrong')
         );
 
-        console.log('   💬 Feedback analysis:', { hasCorrectFeedback, hasWrongFeedback, messages: feedbackMessages });
+        // console.log('   💬 Feedback analysis:', { hasCorrectFeedback, hasWrongFeedback, messages: feedbackMessages });
 
         // Detect validation inversion
         const hasInversion = (shouldBeCorrect && hasWrongFeedback) || (!shouldBeCorrect && hasCorrectFeedback);
         
         if (hasInversion) {
-            console.log('   🚨 VALIDATION INVERSION DETECTED - Applying fix...');
+            // console.log('   🚨 VALIDATION INVERSION DETECTED - Applying fix...');
             
             // Apply visual correction to DOM elements
             $questionList.find('.wpProQuiz_questionListItem').each(function() {
@@ -547,7 +464,7 @@ if (typeof jQuery !== 'undefined') {
                             'color': '#155724'
                         });
                         
-                        console.log(`   ✅ Fixed: Marked "${text}" as CORRECT`);
+                        // console.log(`   ✅ Fixed: Marked "${text}" as CORRECT`);
                     } else {
                         // Mark as incorrect
                         $item.removeClass('wpProQuiz_answerCorrect')
@@ -563,7 +480,7 @@ if (typeof jQuery !== 'undefined') {
                             'color': '#721c24'
                         });
                         
-                        console.log(`   ❌ Fixed: Marked "${text}" as INCORRECT`);
+                        // console.log(`   ❌ Fixed: Marked "${text}" as INCORRECT`);
                     }
                 }
             });
@@ -576,7 +493,7 @@ if (typeof jQuery !== 'undefined') {
                     
                     if (text.includes('שגויה') || text.includes('incorrect')) {
                         $response.html('<span style="color: green; font-weight: bold;">✓ תשובה נכונה! (מתוקן אוטומטית)</span>');
-                        console.log('   📝 Updated feedback message to correct');
+                        // console.log('   📝 Updated feedback message to correct');
                     }
                 });
             }
@@ -592,11 +509,11 @@ if (typeof jQuery !== 'undefined') {
                 originalFeedback: feedbackMessages
             });
             
-            console.log('   ✅ Answer marking system fixed successfully');
+            // console.log('   ✅ Answer marking system fixed successfully');
             return true;
             
         } else {
-            console.log('   ✅ No validation inversion detected - answer marking is correct');
+            // console.log('   ✅ No validation inversion detected - answer marking is correct');
             return false;
         }
     }
@@ -616,7 +533,7 @@ if (typeof jQuery !== 'undefined') {
                     if ($target.hasClass('wpProQuiz_response') || $target.find('.wpProQuiz_response').length > 0) {
                         setTimeout(() => {
                             const currentQuestionId = getCurrentQuestionId();
-                            console.log('[LilacQuiz] 🔧 Auto-triggering answer marking fix...');
+                            // console.log('[LilacQuiz] 🔧 Auto-triggering answer marking fix...');
                             fixAnswerMarkingSystem(currentQuestionId);
                         }, 1000); // Delay to ensure DOM is stable
                     }
@@ -632,7 +549,7 @@ if (typeof jQuery !== 'undefined') {
             characterData: true
         });
         
-        console.log('[LilacQuiz] 🔧 Auto-fix answer marking system activated');
+        // console.log('[LilacQuiz] 🔧 Auto-fix answer marking system activated');
     }
 
     // Add global function for manual answer fixing
@@ -647,7 +564,7 @@ if (typeof jQuery !== 'undefined') {
     function fetchAnswersForCurrentQuestion() {
         // PRIMARY: Use existing LearnDash detection system if available
         if (window.quizDetector && window.quizDetector.detectIds && window.quizDetector.detectQuestionId) {
-            console.log('[LilacQuiz] 🎯 Using existing LearnDash detection system');
+            // console.log('[LilacQuiz] 🎯 Using existing LearnDash detection system');
             
             const quizIds = window.quizDetector.detectIds();
             const questionIds = window.quizDetector.detectQuestionId();
@@ -655,18 +572,18 @@ if (typeof jQuery !== 'undefined') {
             const quizId = quizIds.proQuizId || quizIds.learnDashId || 1;
             const questionId = questionIds.proQuizId || questionIds.postQuestionId || 1;
             
-            console.log(`[LilacQuiz] LearnDash detected - Quiz:${quizId} Question:${questionId}`);
+            // console.log(`[LilacQuiz] LearnDash detected - Quiz:${quizId} Question:${questionId}`);
             
             // Try to get existing answer data from LearnDash system
             if (window.quizDetector.correctAnswers) {
-                console.log('[LilacQuiz] ✅ Using cached answers from LearnDash system');
+                // console.log('[LilacQuiz] ✅ Using cached answers from LearnDash system');
                 displayQuizDataFromLearnDash(quizId, questionId, window.quizDetector.correctAnswers);
                 return;
             }
             
             // Trigger LearnDash fetch if no cached data
             if (window.quizDetector.fetchAnswers) {
-                console.log('[LilacQuiz] 🔄 Triggering LearnDash answer fetch');
+                // console.log('[LilacQuiz] 🔄 Triggering LearnDash answer fetch');
                 window.quizDetector.fetchAnswers(quizId, questionId)
                     .then(data => {
                         if (data) {
@@ -683,7 +600,7 @@ if (typeof jQuery !== 'undefined') {
         }
         
         // FALLBACK: Use our custom detection if LearnDash system unavailable
-        console.log('[LilacQuiz] ⚠️ LearnDash system unavailable, using fallback');
+        // console.log('[LilacQuiz] ⚠️ LearnDash system unavailable, using fallback');
         const quizId = getFallbackQuizId();
         const questionId = getFallbackQuestionId();
         fallbackAnswerFetch(quizId, questionId);
@@ -693,7 +610,7 @@ if (typeof jQuery !== 'undefined') {
      * Display quiz data from LearnDash system
      */
     function displayQuizDataFromLearnDash(quizId, questionId, answerData) {
-        console.log(`[LilacQuiz] 🔍 DEBUGGING LearnDash Data:`, answerData);
+        // console.log(`[LilacQuiz] 🔍 DEBUGGING LearnDash Data:`, answerData);
         
         // Handle both array format and object format from AJAX
         let answers = [];
@@ -706,9 +623,9 @@ if (typeof jQuery !== 'undefined') {
             // Handle AJAX response format: {question_id, answers: [...]}
             answers = answerData.answers;
             correctAnswers = answerData.answers.filter(a => a.correct).map(a => a.text);
-            console.log(`[LilacQuiz] 📋 AJAX Format - Question: ${answerData.question_text}`);
-            console.log(`[LilacQuiz] 📝 All Answers:`, answers);
-            console.log(`[LilacQuiz] ✅ Correct Answers:`, correctAnswers);
+            // console.log(`[LilacQuiz] 📋 AJAX Format - Question: ${answerData.question_text}`);
+            // console.log(`[LilacQuiz] 📝 All Answers:`, answers);
+            // console.log(`[LilacQuiz] ✅ Correct Answers:`, correctAnswers);
         }
         
         const quizData = {
@@ -738,12 +655,12 @@ if (typeof jQuery !== 'undefined') {
      * Fallback answer fetching when LearnDash system fails
      */
     function fallbackAnswerFetch(quizId, questionId) {
-        console.log(`[LilacQuiz] 🔄 Fallback fetch for Quiz:${quizId} Question:${questionId}`);
+        // console.log(`[LilacQuiz] 🔄 Fallback fetch for Quiz:${quizId} Question:${questionId}`);
         
         // Try DOM-based answer detection first
         const domAnswers = extractAnswersFromDOM(questionId);
         if (domAnswers && domAnswers.length > 0) {
-            console.log(`[LilacQuiz] ✅ Found ${domAnswers.length} answers from DOM`);
+            // console.log(`[LilacQuiz] ✅ Found ${domAnswers.length} answers from DOM`);
             displayQuizDataFromDOM(quizId, questionId, domAnswers);
         } else {
             // Final fallback to simulated data
@@ -755,18 +672,18 @@ if (typeof jQuery !== 'undefined') {
      * Extract answers directly from DOM elements
      */
     function extractAnswersFromDOM(questionId) {
-        console.log(`[LilacQuiz] 🔍 Extracting answers from DOM for question ${questionId}`);
+        // console.log(`[LilacQuiz] 🔍 Extracting answers from DOM for question ${questionId}`);
         
         const answers = [];
         
         // Find the question list with matching data-question_id
         const $questionList = $(`.wpProQuiz_questionList[data-question_id="${questionId}"]`);
         if (!$questionList.length) {
-            console.log(`[LilacQuiz] ❌ No question list found for ID ${questionId}`);
+            // console.log(`[LilacQuiz] ❌ No question list found for ID ${questionId}`);
             return null;
         }
         
-        console.log(`[LilacQuiz] 📋 Found question list for ID ${questionId}`);
+        // console.log(`[LilacQuiz] 📋 Found question list for ID ${questionId}`);
         
         // Extract all answer options
         $questionList.find('.wpProQuiz_questionListItem').each(function(index) {
@@ -793,11 +710,11 @@ if (typeof jQuery !== 'undefined') {
                 };
                 
                 answers.push(answer);
-                console.log(`[LilacQuiz] 📝 Answer ${index + 1}: "${text}" (Selected: ${isSelected}, Has Indicator: ${hasCorrectIndicator})`);
+                // console.log(`[LilacQuiz] 📝 Answer ${index + 1}: "${text}" (Selected: ${isSelected}, Has Indicator: ${hasCorrectIndicator})`);
             }
         });
         
-        console.log(`[LilacQuiz] 📊 Extracted ${answers.length} answers from DOM`);
+        // console.log(`[LilacQuiz] 📊 Extracted ${answers.length} answers from DOM`);
         return answers.length > 0 ? answers : null;
     }
 
@@ -820,7 +737,7 @@ if (typeof jQuery !== 'undefined') {
         };
         
         displayQuizDataInFooter(quizData);
-        console.log(`[LilacQuiz] ✅ DOM extraction complete: ${domAnswers.length} answers found`);
+        // console.log(`[LilacQuiz] ✅ DOM extraction complete: ${domAnswers.length} answers found`);
     }
 
     /**
@@ -895,11 +812,11 @@ if (typeof jQuery !== 'undefined') {
      * Debug current answer state for validation analysis
      */
     function debugCurrentAnswerState(questionId) {
-        console.log(`[LilacQuiz] 🔍 DEBUGGING Answer State for Question ${questionId}:`);
+        // console.log(`[LilacQuiz] 🔍 DEBUGGING Answer State for Question ${questionId}:`);
         
         const $questionList = $(`.wpProQuiz_questionList[data-question_id="${questionId}"]`);
         if ($questionList.length === 0) {
-            console.log('   ❌ No question list found for this question ID');
+            // console.log('   ❌ No question list found for this question ID');
             return { selectedAnswers: [], allAnswers: [], feedbackMessages: [] };
         }
 
@@ -953,23 +870,23 @@ if (typeof jQuery !== 'undefined') {
         const correctResults = $('.wpProQuiz_answerCorrect').length;
         const incorrectResults = $('.wpProQuiz_answerIncorrect').length;
 
-        console.log('   📝 Selected Answers:', selectedAnswers);
-        console.log('   📋 All Answers (with validation states):', allAnswers);
-        console.log('   💬 Feedback Messages:', feedbackMessages);
-        console.log('   ✅ Correct Results:', correctResults);
-        console.log('   ❌ Incorrect Results:', incorrectResults);
+        // console.log('   📝 Selected Answers:', selectedAnswers);
+        // console.log('   📋 All Answers (with validation states):', allAnswers);
+        // console.log('   💬 Feedback Messages:', feedbackMessages);
+        // console.log('   ✅ Correct Results:', correctResults);
+        // console.log('   ❌ Incorrect Results:', incorrectResults);
 
         // Advanced validation analysis
         const validationAnalysis = analyzeAnswerValidation(selectedAnswers, allAnswers, feedbackMessages);
-        console.log('   🔬 Validation Analysis:', validationAnalysis);
+        // console.log('   🔬 Validation Analysis:', validationAnalysis);
 
         // Compare with AJAX correct answers if available
         if (window.currentQuestionData && window.currentQuestionData.correctAnswers) {
-            console.log('   🎯 AJAX Correct Answers:', window.currentQuestionData.correctAnswers);
+            // console.log('   🎯 AJAX Correct Answers:', window.currentQuestionData.correctAnswers);
             
             const inversionCheck = checkValidationInversion(selectedAnswers, window.currentQuestionData.correctAnswers, feedbackMessages);
             if (inversionCheck.hasInversion) {
-                console.log('   🚨 VALIDATION INVERSION DETECTED:', inversionCheck.reason);
+                // console.log('   🚨 VALIDATION INVERSION DETECTED:', inversionCheck.reason);
             }
         }
 
@@ -1039,10 +956,10 @@ if (typeof jQuery !== 'undefined') {
         
         // Check for validation inversion
         if (isSelectedInCorrect && hasWrongFeedback) {
-            console.log('[LilacQuiz] 🚨 INVERSION: Selected correct answer but got wrong feedback');
-            console.log('   Selected:', selectedTexts);
-            console.log('   AJAX Correct:', ajaxCorrectAnswers);
-            console.log('   Feedback:', feedbackMessages);
+            // console.log('[LilacQuiz] 🚨 INVERSION: Selected correct answer but got wrong feedback');
+            // console.log('   Selected:', selectedTexts);
+            // console.log('   AJAX Correct:', ajaxCorrectAnswers);
+            // console.log('   Feedback:', feedbackMessages);
             
             return { 
                 hasInversion: true, 
@@ -1051,10 +968,10 @@ if (typeof jQuery !== 'undefined') {
         } 
         
         if (!isSelectedInCorrect && hasCorrectFeedback) {
-            console.log('[LilacQuiz] 🚨 INVERSION: Selected wrong answer but got correct feedback');
-            console.log('   Selected:', selectedTexts);
-            console.log('   AJAX Correct:', ajaxCorrectAnswers);
-            console.log('   Feedback:', feedbackMessages);
+            // console.log('[LilacQuiz] 🚨 INVERSION: Selected wrong answer but got correct feedback');
+            // console.log('   Selected:', selectedTexts);
+            // console.log('   AJAX Correct:', ajaxCorrectAnswers);
+            // console.log('   Feedback:', feedbackMessages);
             
             return { 
                 hasInversion: true, 
@@ -1069,7 +986,7 @@ if (typeof jQuery !== 'undefined') {
      * Setup answer reselection functionality
      */
     function setupAnswerReselection() {
-        console.log('[LilacQuiz] Setting up answer reselection functionality');
+        // console.log('[LilacQuiz] Setting up answer reselection functionality');
         
         // Enable answer reselection after feedback
         $(document).on('click', '.wpProQuiz_questionInput input', function() {
@@ -1077,15 +994,15 @@ if (typeof jQuery !== 'undefined') {
             const questionId = $input.closest('.wpProQuiz_listItem').data('pos') || 
                              $input.closest('.wpProQuiz_questionList').data('question_id');
             
-            console.log('[LilacQuiz] Answer reselection detected for question:', questionId);
+            // console.log('[LilacQuiz] Answer reselection detected for question:', questionId);
             
             // Allow the selection
             setTimeout(() => {
-                console.log('[LilacQuiz] Answer reselection enabled');
+                // console.log('[LilacQuiz] Answer reselection enabled');
             }, 100);
         });
         
-        console.log('[LilacQuiz] ✅ Answer reselection setup complete');
+        // console.log('[LilacQuiz] ✅ Answer reselection setup complete');
     }
 
     /**
@@ -1296,7 +1213,7 @@ if (typeof jQuery !== 'undefined') {
             
         } else {
             // For incorrect answers, lock the question until hint is viewed
-            console.log('[LilacQuiz] Incorrect answer - locking question until hint is viewed');
+            // console.log('[LilacQuiz] Incorrect answer - locking question until hint is viewed');
             
             // Lock the question - require hint viewing before reselection
             $question.addClass('lilac-locked');
@@ -1355,7 +1272,7 @@ if (typeof jQuery !== 'undefined') {
      * Handle hint viewing - unlock question after viewing hint
      */
     function handleHintViewing($question) {
-        console.log('[LilacQuiz] Hint clicked, showing modal and unlocking question');
+        // console.log('[LilacQuiz] Hint clicked, showing modal and unlocking question');
         
         // Show hint modal
         showHintModal($question);
@@ -1386,32 +1303,32 @@ if (typeof jQuery !== 'undefined') {
      * Set up event handlers for quiz interaction
      */
     function setupEventHandlers() {
-        console.log('[LilacQuiz] *** SETTING UP EVENT HANDLERS ***');
+        // console.log('[LilacQuiz] *** SETTING UP EVENT HANDLERS ***');
         
         // Remove any existing handlers
         $(document).off('click.simplifiedCheck');
 
         // Handle check button clicks - enhanced detection system
         $(document).on('click.simplifiedCheck', 'input.wpProQuiz_button[name="check"]', function(e) {
-            console.log('[LilacQuiz] *** CHECK BUTTON CLICKED ***');
+            // console.log('[LilacQuiz] *** CHECK BUTTON CLICKED ***');
             
             const $question = $(this).closest('.wpProQuiz_listItem');
             const $selected = $question.find('.wpProQuiz_questionInput:checked');
 
             if (!$selected.length) {
-                console.log('[LilacQuiz] No answer selected');
+                // console.log('[LilacQuiz] No answer selected');
                 return;
             }
 
-            console.log('[LilacQuiz] Selected answer:', $selected.val());
-            console.log('[LilacQuiz] *** STARTING ENHANCED DETECTION ***');
+            // console.log('[LilacQuiz] Selected answer:', $selected.val());
+            // console.log('[LilacQuiz] *** STARTING ENHANCED DETECTION ***');
             
             // Immediate MutationObserver setup
             setupEarlyAnswerDetection($question);
             
             // Let the native quiz handle the check first
             // Then watch for the result with enhanced detection
-            console.log('[LilacQuiz] Starting enhanced polling system...');
+            // console.log('[LilacQuiz] Starting enhanced polling system...');
             watchForAnswerResult($question);
         });
 
@@ -1422,11 +1339,11 @@ if (typeof jQuery !== 'undefined') {
             
             // Check if clicking our custom hint button or initial hint box
             if ($(this).hasClass('lilac-force-hint') || $(this).hasClass('lilac-clickable-hint')) {
-                console.log('[LilacQuiz] Custom hint button or initial hint box clicked');
+                // console.log('[LilacQuiz] Custom hint button or initial hint box clicked');
                 
                 // If clicking initial hint box, just show modal (no unlocking needed)
                 if ($(this).hasClass('lilac-clickable-hint')) {
-                    console.log('[LilacQuiz] Initial hint box clicked - showing modal');
+                    // console.log('[LilacQuiz] Initial hint box clicked - showing modal');
                     showHintModal($question);
                 } else {
                     // Custom hint button after wrong answer - unlock and show modal
@@ -1439,7 +1356,7 @@ if (typeof jQuery !== 'undefined') {
                 }
             } else {
                 // Native hint button clicked
-                console.log('[LilacQuiz] Native hint button clicked');
+                // console.log('[LilacQuiz] Native hint button clicked');
                 handleHintViewing($question);
             }
         });
@@ -1481,11 +1398,11 @@ if (typeof jQuery !== 'undefined') {
  * Early detection system - monitors DOM changes to catch answer results before LearnDash fully processes them
  */
 function setupEarlyAnswerDetection($question) {
-    console.log('[LilacQuiz] *** MUTATION OBSERVER SETUP ***');
+    // console.log('[LilacQuiz] *** MUTATION OBSERVER SETUP ***');
     
     const questionElement = $question[0];
     if (!questionElement) {
-        console.log('[LilacQuiz] ERROR: No question element');
+        // console.log('[LilacQuiz] ERROR: No question element');
         return;
     }
     
@@ -1494,7 +1411,7 @@ function setupEarlyAnswerDetection($question) {
     const observer = new MutationObserver(function(mutations) {
         if (detectionComplete) return;
         
-        console.log('[LilacQuiz] *** MUTATIONS:', mutations.length, '***');
+        // console.log('[LilacQuiz] *** MUTATIONS:', mutations.length, '***');
         
         mutations.forEach(function(mutation) {
             if (detectionComplete) return;
@@ -1504,7 +1421,7 @@ function setupEarlyAnswerDetection($question) {
                 const $target = $(mutation.target);
                 const classes = $target.attr('class') || '';
 
-                console.log('[LilacQuiz] Class change:', mutation.target.tagName, classes);
+                // console.log('[LilacQuiz] Class change:', mutation.target.tagName, classes);
 
                 // Block interactions on locked questions - force hint viewing or prevent resubmission
                 $(document).on('click',
@@ -1515,9 +1432,9 @@ function setupEarlyAnswerDetection($question) {
                 function(e) {
                     const $question = $(this).closest('.wpProQuiz_listItem');
                     if ($question.hasClass('lilac-correct-locked')) {
-                        console.log(' [LilacQuiz] Blocked - question already answered correctly');
+                        // console.log(' [LilacQuiz] Blocked - question already answered correctly');
                     } else {
-                        console.log(' [LilacQuiz] Blocked - must view hint first');
+                        // console.log(' [LilacQuiz] Blocked - must view hint first');
                     }
                     e.preventDefault();
                     e.stopPropagation();
@@ -1526,13 +1443,13 @@ function setupEarlyAnswerDetection($question) {
 
                 if ($target.hasClass('wpProQuiz_questionListItem')) {
                     if (classes.includes('wpProQuiz_answerCorrect')) {
-                        console.log('[LilacQuiz] *** CORRECT DETECTED ***');
+                        // console.log('[LilacQuiz] *** CORRECT DETECTED ***');
                         detectionComplete = true;
                         observer.disconnect();
                         handleAnswerResult($question, true);
                         return;
                     } else if (classes.includes('wpProQuiz_answerIncorrect')) {
-                        console.log('[LilacQuiz] *** INCORRECT DETECTED ***');
+                        // console.log('[LilacQuiz] *** INCORRECT DETECTED ***');
                         detectionComplete = true;
                         observer.disconnect();
                         handleAnswerResult($question, false);
@@ -1548,19 +1465,19 @@ function setupEarlyAnswerDetection($question) {
                         const $node = $(node);
                         const className = node.className || '';
                         
-                        console.log('[LilacQuiz] Element added:', node.tagName, className);
+                        // console.log('[LilacQuiz] Element added:', node.tagName, className);
                         
                         // Check for status elements
                         if (className.includes('ld-quiz-question-item__status--correct') || 
                             $node.find('.ld-quiz-question-item__status--correct').length) {
-                            console.log('[LilacQuiz] *** CORRECT STATUS ADDED ***');
+                            // console.log('[LilacQuiz] *** CORRECT STATUS ADDED ***');
                             detectionComplete = true;
                             observer.disconnect();
                             handleAnswerResult($question, true);
                             return;
                         } else if (className.includes('ld-quiz-question-item__status--incorrect') || 
                                   $node.find('.ld-quiz-question-item__status--incorrect').length) {
-                            console.log('[LilacQuiz] *** INCORRECT STATUS ADDED ***');
+                            // console.log('[LilacQuiz] *** INCORRECT STATUS ADDED ***');
                             detectionComplete = true;
                             observer.disconnect();
                             handleAnswerResult($question, false);
@@ -1579,10 +1496,10 @@ function setupEarlyAnswerDetection($question) {
         attributeFilter: ['class']
     });
     
-    console.log('[LilacQuiz] Observer active for 8 seconds');
+    // console.log('[LilacQuiz] Observer active for 8 seconds');
     setTimeout(() => {
         if (!detectionComplete) {
-            console.log('[LilacQuiz] Observer timeout - starting polling fallback');
+            // console.log('[LilacQuiz] Observer timeout - starting polling fallback');
             observer.disconnect();
             watchForAnswerResult($question);
         }
@@ -1596,7 +1513,7 @@ function setupEarlyAnswerDetection($question) {
      * Enhanced with backup detection system for LearnDash status elements
      */
     function watchForAnswerResult($question) {
-        console.log('[LilacQuiz] *** POLLING FALLBACK STARTED ***');
+        // console.log('[LilacQuiz] *** POLLING FALLBACK STARTED ***');
         let checkCount = 0;
         const maxChecks = 30; // 3 seconds max
         
@@ -1611,7 +1528,7 @@ function setupEarlyAnswerDetection($question) {
                 
                 // Only log every 5th check to reduce console spam
                 if (checkCount % 5 === 1) {
-                    console.log('[LilacQuiz] Checking classes:', classes);
+                    // console.log('[LilacQuiz] Checking classes:', classes);
                 }
                 
                 // BACKUP SYSTEM: Check for new LearnDash status elements first
@@ -1621,12 +1538,12 @@ function setupEarlyAnswerDetection($question) {
                     const $incorrectStatus = $statusElement.find('.ld-quiz-question-item__status--incorrect');
                     
                     if ($correctStatus.is(':visible') || $correctStatus.css('display') !== 'none') {
-                        console.log('[LilacQuiz] Correct answer detected via NEW status element!');
+                        // console.log('[LilacQuiz] Correct answer detected via NEW status element!');
                         clearInterval(checkInterval);
                         handleAnswerResult($question, true);
                         return;
                     } else if ($incorrectStatus.is(':visible') || $incorrectStatus.css('display') !== 'none') {
-                        console.log('[LilacQuiz] Incorrect answer detected via NEW status element!');
+                        // console.log('[LilacQuiz] Incorrect answer detected via NEW status element!');
                         clearInterval(checkInterval);
                         handleAnswerResult($question, false);
                         return;
@@ -1636,12 +1553,12 @@ function setupEarlyAnswerDetection($question) {
                 // Original system: Check if quiz has applied result classes
                 if ($wrapper.hasClass('wpProQuiz_answerCorrect') || 
                     $wrapper.hasClass('wpProQuiz_answerCorrectIncomplete')) {
-                    console.log('[LilacQuiz] Correct answer detected! Classes:', classes);
+                    // console.log('[LilacQuiz] Correct answer detected! Classes:', classes);
                     clearInterval(checkInterval);
                     handleAnswerResult($question, true);
                     return;
                 } else if ($wrapper.hasClass('wpProQuiz_answerIncorrect')) {
-                    console.log('[LilacQuiz] Incorrect answer detected! Classes:', classes);
+                    // console.log('[LilacQuiz] Incorrect answer detected! Classes:', classes);
                     clearInterval(checkInterval);
                     handleAnswerResult($question, false);
                     return;
@@ -1657,13 +1574,13 @@ function setupEarlyAnswerDetection($question) {
                     const $wrapper = $selected.closest('.wpProQuiz_questionListItem');
                     
                     if ($wrapper.hasClass('wpProQuiz_answerIncorrect')) {
-                        console.log('[LilacQuiz] Incorrect answer detected via response area');
+                        // console.log('[LilacQuiz] Incorrect answer detected via response area');
                         clearInterval(checkInterval);
                         handleAnswerResult($question, false);
                         return;
                     } else if ($wrapper.hasClass('wpProQuiz_answerCorrect') || 
                               $wrapper.hasClass('wpProQuiz_answerCorrectIncomplete')) {
-                        console.log('[LilacQuiz] Correct answer detected via response area');
+                        // console.log('[LilacQuiz] Correct answer detected via response area');
                         clearInterval(checkInterval);
                         handleAnswerResult($question, true);
                         return;
@@ -1674,7 +1591,7 @@ function setupEarlyAnswerDetection($question) {
             // Third priority: Check all answer items for the incorrect class
             const $incorrectAnswer = $question.find('.wpProQuiz_answerIncorrect');
             if ($incorrectAnswer.length) {
-                console.log('[LilacQuiz] Found incorrect answer marker on element');
+                // console.log('[LilacQuiz] Found incorrect answer marker on element');
                 clearInterval(checkInterval);
                 handleAnswerResult($question, false);
                 return;
@@ -1687,12 +1604,12 @@ function setupEarlyAnswerDetection($question) {
                 const $visibleIncorrect = $allStatusElements.find('.ld-quiz-question-item__status--incorrect:visible');
                 
                 if ($visibleCorrect.length) {
-                    console.log('[LilacQuiz] Backup detection: Correct answer found via visible status');
+                    // console.log('[LilacQuiz] Backup detection: Correct answer found via visible status');
                     clearInterval(checkInterval);
                     handleAnswerResult($question, true);
                     return;
                 } else if ($visibleIncorrect.length) {
-                    console.log('[LilacQuiz] Backup detection: Incorrect answer found via visible status');
+                    // console.log('[LilacQuiz] Backup detection: Incorrect answer found via visible status');
                     clearInterval(checkInterval);
                     handleAnswerResult($question, false);
                     return;
@@ -1700,7 +1617,7 @@ function setupEarlyAnswerDetection($question) {
             }
             
             if (checkCount >= maxChecks) {
-                console.log('[LilacQuiz] Timeout waiting for answer result after 3 seconds');
+                // console.log('[LilacQuiz] Timeout waiting for answer result after 3 seconds');
                 clearInterval(checkInterval);
                 
                 // Enhanced fallback: Check both old classes AND new status elements
@@ -1713,13 +1630,13 @@ function setupEarlyAnswerDetection($question) {
                 const $finalIncorrect = $finalStatusCheck.find('.ld-quiz-question-item__status--incorrect');
                 
                 if ($anyIncorrect.length || $finalIncorrect.length) {
-                    console.log('[LilacQuiz] Final fallback: Incorrect answer detected');
+                    // console.log('[LilacQuiz] Final fallback: Incorrect answer detected');
                     handleAnswerResult($question, false);
                 } else if ($anyCorrect.length || $finalCorrect.length) {
-                    console.log('[LilacQuiz] Final fallback: Correct answer detected');
+                    // console.log('[LilacQuiz] Final fallback: Correct answer detected');
                     handleAnswerResult($question, true);
                 } else {
-                    console.log('[LilacQuiz] No answer result detected after timeout - system may need manual intervention');
+                    // console.log('[LilacQuiz] No answer result detected after timeout - system may need manual intervention');
                 }
             }
         }, 100);
@@ -1751,32 +1668,32 @@ function setupEarlyAnswerDetection($question) {
      * Inject initial hint boxes for all questions
      */
     function injectInitialHintBoxes() {
-        console.log('[LilacQuiz] *** INJECTING INITIAL HINT BOXES ***');
+        // console.log('[LilacQuiz] *** INJECTING INITIAL HINT BOXES ***');
         
         // Wait for LearnDash quiz to be fully loaded
         function waitForQuizDOM() {
             // Check if quiz is in loading state
             const loadingElement = document.querySelector('.wpProQuiz_loadQuiz');
             if (loadingElement && loadingElement.style.display !== 'none') {
-                console.log('[LilacQuiz] Quiz still loading, waiting...');
+                // console.log('[LilacQuiz] Quiz still loading, waiting...');
                 setTimeout(waitForQuizDOM, 500);
                 return;
             }
             
             // Try multiple selectors to find questions - updated for current DOM structure
             let $questions = $('.wpProQuiz_listItem');
-            console.log('[LilacQuiz] Found', $questions.length, 'total .wpProQuiz_listItem questions');
+            // console.log('[LilacQuiz] Found', $questions.length, 'total .wpProQuiz_listItem questions');
             
             if ($questions.length === 0) {
                 // Try alternative selectors for different quiz layouts
                 $questions = $('.wpProQuiz_quiz .wpProQuiz_list > li');
-                console.log('[LilacQuiz] Trying .wpProQuiz_quiz .wpProQuiz_list > li, found', $questions.length, 'questions');
+                // console.log('[LilacQuiz] Trying .wpProQuiz_quiz .wpProQuiz_list > li, found', $questions.length, 'questions');
             }
             
             if ($questions.length === 0) {
                 // Try even more generic selector
                 $questions = $('.wpProQuiz_quiz li');
-                console.log('[LilacQuiz] Trying .wpProQuiz_quiz li, found', $questions.length, 'questions');
+                // console.log('[LilacQuiz] Trying .wpProQuiz_quiz li, found', $questions.length, 'questions');
             }
             
             // Debug: Check if quiz container exists at all
@@ -1784,23 +1701,23 @@ function setupEarlyAnswerDetection($question) {
             const quizList = document.querySelector('.wpProQuiz_list');
             const allLi = document.querySelectorAll('.wpProQuiz_quiz li');
             const questionFieldsets = document.querySelectorAll('.wpProQuiz_question');
-            console.log('[LilacQuiz] Debug - Quiz container:', !!quizContainer, 'Quiz list:', !!quizList, 'All li:', allLi.length, 'Fieldsets:', questionFieldsets.length);
+            // console.log('[LilacQuiz] Debug - Quiz container:', !!quizContainer, 'Quiz list:', !!quizList, 'All li:', allLi.length, 'Fieldsets:', questionFieldsets.length);
             
             // If jQuery fails, try native DOM
             if ($questions.length === 0 && allLi.length > 0) {
                 $questions = $(allLi);
-                console.log('[LilacQuiz] Using native DOM selector, found', $questions.length, 'questions');
+                // console.log('[LilacQuiz] Using native DOM selector, found', $questions.length, 'questions');
             }
             
             // Check if we have visible quiz content
             const hasVisibleQuiz = document.querySelector('.wpProQuiz_quiz:not([style*="display: none"])');
             const hasQuestionText = document.querySelector('.wpProQuiz_question_text');
             
-            console.log('[LilacQuiz] Found', $questions.length, 'questions for injection');
-            console.log('[LilacQuiz] Has visible quiz:', !!hasVisibleQuiz, 'Has question text:', !!hasQuestionText);
+            // console.log('[LilacQuiz] Found', $questions.length, 'questions for injection');
+            // console.log('[LilacQuiz] Has visible quiz:', !!hasVisibleQuiz, 'Has question text:', !!hasQuestionText);
             
             if ($questions.length === 0 || !hasVisibleQuiz || !hasQuestionText) {
-                console.log('[LilacQuiz] Quiz not ready yet, retrying in 500ms...');
+                // console.log('[LilacQuiz] Quiz not ready yet, retrying in 500ms...');
                 setTimeout(waitForQuizDOM, 500);
                 return;
             }
@@ -1814,12 +1731,12 @@ function setupEarlyAnswerDetection($question) {
         
         // Function to inject hint boxes - moved inside waitForQuizDOM scope
         function doHintBoxInjection($questions) {
-            console.log('[LilacQuiz] Starting hint box injection for', $questions.length, 'questions');
+            // console.log('[LilacQuiz] Starting hint box injection for', $questions.length, 'questions');
             
             $questions.each(function(index) {
                 const $question = $(this);
                 if ($question.find('.lilac-initial-hint-box').length) {
-                    console.log('[LilacQuiz] Question', index + 1, 'already has hint box, skipping');
+                    // console.log('[LilacQuiz] Question', index + 1, 'already has hint box, skipping');
                     return;
                 }
                 
@@ -1864,28 +1781,28 @@ function setupEarlyAnswerDetection($question) {
                 $hintBox.on('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('[LilacQuiz] Hint box clicked for question', index + 1);
+                    // console.log('[LilacQuiz] Hint box clicked for question', index + 1);
                     
                     // Hide any existing native hint popups first
                     $('.wpProQuiz_tipp').hide();
                     
                     // If question is locked, unlock it after viewing hint
                     if ($question.hasClass('lilac-locked') || $question.hasClass('lilac-correct-locked')) {
-                        console.log('[LilacQuiz] Question is locked, unlocking after hint viewing');
+                        // console.log('[LilacQuiz] Question is locked, unlocking after hint viewing');
                         handleHintViewing($question);
                     } else {
                         // Just show the modal if not locked
-                        console.log('[LilacQuiz] Showing hint modal for unlocked question');
+                        // console.log('[LilacQuiz] Showing hint modal for unlocked question');
                         showHintModal($question);
                     }
                 });
                 
                 // Insert hint box at the bottom of the question
                 $question.append($hintBox);
-                console.log(`[LilacQuiz] Added ${hintBoxClass} hint box to question ${index + 1}`);
+                // console.log(`[LilacQuiz] Added ${hintBoxClass} hint box to question ${index + 1}`);
             });
             
-            console.log('[LilacQuiz] Hint box injection completed successfully');
+            // console.log('[LilacQuiz] Hint box injection completed successfully');
         }
         
         // Add CSS animation for pulsing effect and color states
@@ -1921,7 +1838,7 @@ function setupEarlyAnswerDetection($question) {
             `);
         }
         
-        console.log('[LilacQuiz] Initial hint boxes injection setup completed');
+        // console.log('[LilacQuiz] Initial hint boxes injection setup completed');
         
         // Set up wrong answer detection to change hint box color
         setupWrongAnswerDetection();
@@ -1937,7 +1854,7 @@ function setupEarlyAnswerDetection($question) {
             setTimeout(function() {
                 // Check if this question now shows incorrect feedback
                 if ($question.find('.wpProQuiz_incorrect:visible').length > 0) {
-                    console.log('[LilacQuiz] Wrong answer detected via click, changing hint box to orange');
+                    // console.log('[LilacQuiz] Wrong answer detected via click, changing hint box to orange');
                     changeHintBoxesToOrange();
                 }
             }, 100);
@@ -1950,7 +1867,7 @@ function setupEarlyAnswerDetection($question) {
                     if (mutation.type === 'childList') {
                         // Check for incorrect feedback
                         $(mutation.addedNodes).find('.wpProQuiz_incorrect:visible').each(function() {
-                            console.log('[LilacQuiz] Wrong answer detected via mutation, changing hint box to orange');
+                            // console.log('[LilacQuiz] Wrong answer detected via mutation, changing hint box to orange');
                             changeHintBoxesToOrange();
                         });
                         
@@ -1958,7 +1875,7 @@ function setupEarlyAnswerDetection($question) {
                         $(mutation.addedNodes).find('.wpProQuiz_listItem:visible').each(function() {
                             const $question = $(this);
                             if (!$question.find('.lilac-initial-hint-box').length) {
-                                console.log('[LilacQuiz] New question detected, injecting hint box');
+                                // console.log('[LilacQuiz] New question detected, injecting hint box');
                                 injectHintBoxForQuestion($question);
                             }
                         });
@@ -1968,7 +1885,7 @@ function setupEarlyAnswerDetection($question) {
                             $('.wpProQuiz_listItem:visible').each(function() {
                                 const $question = $(this);
                                 if (!$question.find('.lilac-initial-hint-box').length) {
-                                    console.log('[LilacQuiz] Re-injecting missing hint box');
+                                    // console.log('[LilacQuiz] Re-injecting missing hint box');
                                     injectHintBoxForQuestion($question);
                                 }
                             });
@@ -1986,7 +1903,7 @@ function setupEarlyAnswerDetection($question) {
                     attributes: true,
                     attributeFilter: ['style', 'class']
                 });
-                console.log('[LilacQuiz] MutationObserver setup for quiz container');
+                // console.log('[LilacQuiz] MutationObserver setup for quiz container');
             }
         }
         
@@ -1995,7 +1912,7 @@ function setupEarlyAnswerDetection($question) {
             $('.wpProQuiz_listItem:visible').each(function() {
                 const $question = $(this);
                 if (!$question.find('.lilac-initial-hint-box').length) {
-                    console.log('[LilacQuiz] Periodic check: Re-injecting missing hint box');
+                    // console.log('[LilacQuiz] Periodic check: Re-injecting missing hint box');
                     injectHintBoxForQuestion($question);
                 }
             });
@@ -2014,7 +1931,7 @@ function setupEarlyAnswerDetection($question) {
                 'border': '2px solid #e65100 !important',
                 'box-shadow': '0 4px 12px rgba(255, 152, 0, 0.3) !important'
             });
-            console.log('[LilacQuiz] Changed hint box to orange');
+            // console.log('[LilacQuiz] Changed hint box to orange');
         });
     }
     
@@ -2028,7 +1945,7 @@ function setupEarlyAnswerDetection($question) {
         }
         
         const questionIndex = $('.wpProQuiz_listItem').index($question);
-        console.log(`[LilacQuiz] Injecting hint box for question ${questionIndex + 1}`);
+        // console.log(`[LilacQuiz] Injecting hint box for question ${questionIndex + 1}`);
         
         // Create hint box for this question
         const $hintBox = $(`
@@ -2060,14 +1977,14 @@ function setupEarlyAnswerDetection($question) {
         $hintBox.on('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log('[LilacQuiz] Hint box clicked for question', questionIndex + 1);
+            // console.log('[LilacQuiz] Hint box clicked for question', questionIndex + 1);
             
             // Hide any existing native hint popups first
             $('.wpProQuiz_tipp').hide();
             
             // If question is locked, unlock it after viewing hint
             if ($question.hasClass('lilac-locked')) {
-                console.log('[LilacQuiz] Question is locked, unlocking after hint viewing');
+                // console.log('[LilacQuiz] Question is locked, unlocking after hint viewing');
                 handleHintViewing($question);
             } else {
                 // Just show the modal if not locked
@@ -2077,14 +1994,14 @@ function setupEarlyAnswerDetection($question) {
         
         // Insert hint box at the bottom of the question
         $question.append($hintBox);
-        console.log(`[LilacQuiz] Added hint box to question ${questionIndex + 1}`);
+        // console.log(`[LilacQuiz] Added hint box to question ${questionIndex + 1}`);
     }
 
     /**
      * Show custom hint when no native hint button exists
      */
     function showCustomHint($question, questionNumber) {
-        console.log('[LilacQuiz] Showing custom hint for question', questionNumber);
+        // console.log('[LilacQuiz] Showing custom hint for question', questionNumber);
         
         // Remove any existing custom hints
         $question.find('.lilac-custom-hint').remove();
@@ -2157,7 +2074,7 @@ function setupEarlyAnswerDetection($question) {
             
             // Don't process if question is locked - force hint viewing first
             if ($question.hasClass('lilac-locked') || $question.hasClass('lilac-correct-locked')) {
-                console.log('[LilacQuiz] 🔒 Answer click blocked - question is locked');
+                // console.log('[LilacQuiz] 🔒 Answer click blocked - question is locked');
                 e.preventDefault();
                 e.stopPropagation();
                 return false;
@@ -2178,7 +2095,7 @@ function setupEarlyAnswerDetection($question) {
                 setTimeout(function() {
                     const $checkButton = $question.find('input.wpProQuiz_button[name="check"]');
                     if ($checkButton.length && !$checkButton.prop('disabled')) {
-                        console.log('[LilacQuiz] Auto-checking from answer click');
+                        // console.log('[LilacQuiz] Auto-checking from answer click');
                         $checkButton.trigger('click');
                     }
                 }, 100);
@@ -2253,7 +2170,7 @@ function setupEarlyAnswerDetection($question) {
 
     // Initialize the plugin when DOM is ready
     $(document).ready(function() {
-        console.log('[LilacQuiz] DOM ready - initializing plugin...');
+        // console.log('[LilacQuiz] DOM ready - initializing plugin...');
         
         // Extract question data and set up monitoring
         extractQuestionData();
@@ -2270,16 +2187,16 @@ function setupEarlyAnswerDetection($question) {
         // Mark as initialized
         window.lilacQuizInitialized = true;
         
-        console.log('[LilacQuiz] *** PLUGIN INITIALIZATION COMPLETE ***');
+        // console.log('[LilacQuiz] *** PLUGIN INITIALIZATION COMPLETE ***');
     });
     
     // Force immediate initialization - don't wait for document ready
-    console.log('[LilacQuiz] *** FORCING IMMEDIATE INITIALIZATION ***');
+    // console.log('[LilacQuiz] *** FORCING IMMEDIATE INITIALIZATION ***');
     
     function initializeQuizSystem() {
-        console.log('[LilacQuiz] *** INITIALIZING QUIZ SYSTEM ***');
+        // console.log('[LilacQuiz] *** INITIALIZING QUIZ SYSTEM ***');
         if (window.lilacQuizInitialized) {
-            console.log('[LilacQuiz] Already initialized, skipping...');
+            // console.log('[LilacQuiz] Already initialized, skipping...');
             return;
         }
         
@@ -2298,12 +2215,12 @@ function setupEarlyAnswerDetection($question) {
         // Mark as initialized
         window.lilacQuizInitialized = true;
         
-        console.log('[LilacQuiz] *** PLUGIN INITIALIZATION COMPLETE ***');
+        // console.log('[LilacQuiz] *** PLUGIN INITIALIZATION COMPLETE ***');
     }
     
     // Document ready handler
     $(document).ready(function() {
-        console.log('[LilacQuiz] *** DOCUMENT READY TRIGGERED ***');
+        // console.log('[LilacQuiz] *** DOCUMENT READY TRIGGERED ***');
         if (!window.lilacQuizInitialized) {
             initializeQuizSystem();
         }
