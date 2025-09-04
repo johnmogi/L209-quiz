@@ -884,6 +884,132 @@ window.forceRemoveAllBlocks = forceRemoveAllBlocks;
 window.blockAllAnswerInputs = blockAllAnswerInputs;
 window.enableAllQuizInputs = enableAllQuizInputs;
 
-// Hint box display removed for production
+/**
+ * Create and display hint box at bottom of page
+ */
+function createHintBox() {
+    // Remove existing hint box if present
+    const existingBox = document.getElementById('lilac-hint-box');
+    if (existingBox) {
+        existingBox.remove();
+    }
+    
+    // Create hint box HTML
+    const hintBox = document.createElement('div');
+    hintBox.id = 'lilac-hint-box';
+    hintBox.innerHTML = `
+        <div style="
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #4a90e2, #5ba0f2);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+            z-index: 9999;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+            border: 2px solid #3a7bc8;
+            min-width: 300px;
+            direction: rtl;
+            animation: hintPulse 2s infinite;
+        ">
+            💡 רמז זמין! לחץ כאן לקבלת עזרה בשאלה זו
+        </div>
+    `;
+    
+    // Add CSS animation
+    if (!document.getElementById('hint-box-styles')) {
+        const style = document.createElement('style');
+        style.id = 'hint-box-styles';
+        style.textContent = `
+            @keyframes hintPulse {
+                0% { transform: translateX(-50%) scale(1); opacity: 0.9; }
+                50% { transform: translateX(-50%) scale(1.02); opacity: 1; }
+                100% { transform: translateX(-50%) scale(1); opacity: 0.9; }
+            }
+            #lilac-hint-box:hover {
+                background: linear-gradient(135deg, #5ba0f2, #6bb0ff) !important;
+                transform: translateX(-50%) scale(1.05) !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Add click handler
+    hintBox.addEventListener('click', function() {
+        // Find and trigger the native hint button
+        const hintButton = document.querySelector('.wpProQuiz_button[name="tip"], .wpProQuiz_TipButton');
+        if (hintButton) {
+            hintButton.click();
+        } else {
+            // Show custom hint modal if no native button
+            showCustomHintModal();
+        }
+    });
+    
+    // Add to page
+    document.body.appendChild(hintBox);
+    log.info('✅ Hint box created and displayed');
+}
+
+/**
+ * Show custom hint modal when no native hint available
+ */
+function showCustomHintModal() {
+    const modal = document.createElement('div');
+    modal.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        ">
+            <div style="
+                background: white;
+                padding: 30px;
+                border-radius: 10px;
+                max-width: 500px;
+                text-align: center;
+                direction: rtl;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            ">
+                <h3 style="color: #4a90e2; margin-bottom: 20px;">💡 רמז לשאלה</h3>
+                <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px;">
+                    קרא שוב את השאלה בעיון ושים לב למילות המפתח. התשובה הנכונה מתייחסת לחובה החוקית של הנהג.
+                </p>
+                <button onclick="this.closest('div').parentElement.remove()" style="
+                    background: #4a90e2;
+                    color: white;
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 16px;
+                ">סגור</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+// Auto-create hint box when page loads
+jQuery(document).ready(function() {
+    setTimeout(createHintBox, 1000);
+});
+
+// Make hint box function globally available
+window.createHintBox = createHintBox;
 
 })(jQuery);
