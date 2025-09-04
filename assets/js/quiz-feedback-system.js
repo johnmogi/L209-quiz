@@ -13,18 +13,47 @@
 
         init() {
             console.log('Quiz Feedback System: Initializing...');
+            console.log('Document ready state:', document.readyState);
             
-            // Wait for DOM to be ready
-            $(document).ready(() => {
-                this.createAlwaysVisibleHintButton();
-                this.setupAnswerFeedback();
-                this.setupQuizObserver();
-            });
+            let initialized = false;
+            
+            // Initialize immediately if DOM is ready, otherwise wait
+            if (document.readyState === 'loading') {
+                console.log('Quiz Feedback System: DOM is loading, waiting for ready...');
+                
+                // Primary method: jQuery document ready
+                $(document).ready(() => {
+                    if (!initialized) {
+                        console.log('Quiz Feedback System: DOM ready callback fired, starting initialization...');
+                        initialized = true;
+                        this.startInitialization();
+                    }
+                });
+                
+                // Fallback method: timeout
+                setTimeout(() => {
+                    if (!initialized) {
+                        console.log('Quiz Feedback System: DOM ready timeout fallback, starting initialization...');
+                        initialized = true;
+                        this.startInitialization();
+                    }
+                }, 2000);
+                
+            } else {
+                console.log('Quiz Feedback System: DOM already ready, starting initialization immediately...');
+                this.startInitialization();
+            }
+        }
+
+        startInitialization() {
+            this.createAlwaysVisibleHintButton();
+            this.setupAnswerFeedback();
+            this.setupQuizObserver();
         }
 
         createAlwaysVisibleHintButton() {
             // Remove any existing hint button
-            $('#lilac-always-hint-btn').remove();
+            $('.lilac-hint-message').remove();
             
             const quizContainer = $('.wpProQuiz_content');
             if (!quizContainer.length) {
@@ -33,23 +62,26 @@
                 return;
             }
 
-            // Create always-visible hint button matching screenshot design
+            // Create always-visible hint button matching production design
             const hintButton = $(`
-                <div id="lilac-always-hint-btn" class="lilac-always-hint-button">
-                    <button type="button" class="hint-btn">
-                        רמז
-                    </button>
-                    <span class="hint-text">צפייה ברמז 💡</span>
+                <div class="lilac-hint-message" style="background: rgb(204, 229, 255); border: 2px solid rgb(0, 123, 255); border-radius: 8px; padding: 15px 20px; display: flex; align-items: center; gap: 15px; direction: rtl; text-align: right; font-family: Arial, sans-serif; margin: 15px 0px; width: 100%; max-width: 800px; box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; gap: 10px; color: #004085; font-weight: bold; font-size: 16px;">
+                        <span style="color: #007bff; font-size: 18px;">
+                            <img draggable="false" role="img" class="emoji" alt="💡" src="https://s.w.org/images/core/emoji/16.0.1/svg/1f4a1.svg">
+                        </span>
+                        <span>צפייה ברמז</span>
+                    </div>
+                    <button class="lilac-force-hint" style="background: #007bff; color: white; border: none; border-radius: 6px; padding: 10px 20px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; min-width: 80px;">רמז</button>
                 </div>
             `);
 
             // Add click handler
-            hintButton.find('.hint-btn').on('click', (e) => {
+            hintButton.find('.lilac-force-hint').on('click', (e) => {
                 e.preventDefault();
                 this.showHintModal();
             });
 
-            // Insert after quiz container
+            // Insert hint button after quiz container
             quizContainer.after(hintButton);
             console.log('✅ Always-visible hint button created');
         }
@@ -58,10 +90,10 @@
             // Remove existing modal
             $('.lilac-hint-modal').remove();
             
-            // Get hint content from existing quiz hint or create default
-            let hintContent = this.getHintContent();
+            // Get hint content
+            const hintContent = this.getHintContent();
             
-            // Create hint modal matching screenshot design
+            // Create hint modal matching production design
             const modal = $(`
                 <div class="lilac-hint-modal">
                     <div class="lilac-hint-modal-content">
@@ -80,7 +112,7 @@
                 modal.fadeOut(300, () => modal.remove());
             });
             
-            // Close on background click
+            // Close modal when clicking outside
             modal.on('click', (e) => {
                 if (e.target === modal[0]) {
                     modal.fadeOut(300, () => modal.remove());
@@ -100,23 +132,15 @@
             }
             
             // Default hint content
-            return 'החלק אופר במופרע נהגה תחת השפעת אלכוהול או מיממ מעכרים וחרדי נמצא רב לא לאפשר לאדם התנהגות חייב לצייתו';
-        }
-
-        triggerHint() {
-            // Show modal instead of clicking existing button
-            this.showHintModal();
+            return 'החוק אוסר במפורש נהיגה תחת השפעת אלכוהול או סמים משכרים ודורש מבעל רכב לא לאפשר לאדם הנמצא תחת השפעות אלכוהול לנהוג ברכבו.';
         }
 
         setupAnswerFeedback() {
-            console.log('Setting up answer feedback system...');
-            
-            // Monitor for quiz submission results
+            // Watch for quiz result changes
             this.observeQuizResults();
         }
 
         observeQuizResults() {
-            // Watch for result messages
             const observer = new MutationObserver((mutations) => {
                 mutations.forEach((mutation) => {
                     mutation.addedNodes.forEach((node) => {
@@ -131,9 +155,6 @@
                 childList: true,
                 subtree: true
             });
-
-            // Also check existing elements
-            this.checkForResultMessages($('body'));
         }
 
         checkForResultMessages($container) {
@@ -147,7 +168,7 @@
             });
 
             // Check for wrong answer indicators
-            const wrongIndicators = $container.find('.wpProQuiz_incorrect, .incorrect-answer, [class*="incorrect"], [class*="wrong"]');
+            const wrongIndicators = $container.find('.wpProQuiz_incorrect, .incorrect-answer, [class*="wrong"]');
             wrongIndicators.each((i, el) => {
                 if ($(el).is(':visible') && !$(el).hasClass('lilac-processed')) {
                     $(el).addClass('lilac-processed');
@@ -171,10 +192,14 @@
             $('.lilac-feedback-message').remove();
 
             const feedbackClass = `lilac-feedback-${type}`;
+            const backgroundColor = type === 'correct' ? 'rgb(212, 237, 218)' : 'rgb(248, 215, 218)';
+            const borderColor = type === 'correct' ? 'rgb(40, 167, 69)' : 'rgb(220, 53, 69)';
+            const textColor = type === 'correct' ? 'rgb(21, 87, 36)' : 'rgb(114, 28, 36)';
+            
             const feedback = $(`
-                <div class="lilac-feedback-message ${feedbackClass}">
-                    <span class="feedback-text">${message}</span>
-                    ${type === 'wrong' ? '<button class="feedback-hint-btn">רמז</button>' : ''}
+                <div class="lilac-feedback-message ${feedbackClass}" style="background: ${backgroundColor}; border: 2px solid ${borderColor}; border-radius: 8px; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; gap: 15px; direction: rtl; text-align: right; font-family: Arial, sans-serif; margin: 15px 0px; width: 100%; max-width: 800px; box-sizing: border-box;">
+                    <span class="feedback-text" style="color: ${textColor}; font-weight: bold; font-size: 16px;">${message}</span>
+                    ${type === 'wrong' ? '<button class="feedback-hint-btn" style="background: #dc3545; color: white; border: none; border-radius: 6px; padding: 10px 20px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; min-width: 80px;">רמז</button>' : ''}
                 </div>
             `);
 
@@ -207,7 +232,7 @@
             // Watch for quiz state changes
             const quizObserver = new MutationObserver(() => {
                 // Ensure hint button is always present
-                if (!$('#lilac-always-hint-btn').length) {
+                if (!$('.lilac-hint-message').length) {
                     setTimeout(() => this.createAlwaysVisibleHintButton(), 500);
                 }
             });
@@ -220,7 +245,7 @@
     }
 
     // Initialize the feedback system
-    window.lilacQuizFeedback = new QuizFeedbackSystem();
+    window.LilacQuizFeedback = new QuizFeedbackSystem();
 
     console.log('Quiz Feedback System: Script loaded');
 
