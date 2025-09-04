@@ -358,41 +358,12 @@ class Lilac_Quiz_Sidebar {
                 // Debug info removed for production
             }
             
-            // Core functionality scripts only - moved inactive scripts to bu2 folder
-            
-            // Enqueue the quiz feedback system for always-visible hint button and answer feedback
+            // Load the working quiz system
             wp_enqueue_script(
-                'quiz-feedback-system',
-                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-feedback-system.js',
+                'quiz-working-system',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-working-system.js',
                 array('jquery'),
-                '2.0.0-enhanced-' . time() . '-' . rand(1000, 9999),
-                true
-            );
-            
-            // Enqueue force hint button script to bypass caching issues
-            wp_enqueue_script(
-                'quiz-hint-button-force',
-                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-hint-button-force.js',
-                array('jquery'),
-                '1.0.0-force-' . time() . '-' . rand(1000, 9999),
-                true
-            );
-            
-            // RESTORE DEBUGGER - Enqueue quiz question detector for debugger functionality
-            wp_enqueue_script(
-                'quiz-question-detector-enhanced',
-                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/bu2/quiz-question-detector-enhanced.js',
-                array('jquery'),
-                '1.0.0-debugger-' . time() . '-' . rand(1000, 9999),
-                true
-            );
-            
-            // RESTORE DEBUGGER - Enqueue expansion overlay for debugger functionality
-            wp_enqueue_script(
-                'quiz-expansion-overlay',
-                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/bu2/quiz-expansion-overlay.js',
-                array('jquery', 'quiz-question-detector-enhanced'),
-                '1.0.0-debugger-' . time() . '-' . rand(1000, 9999),
+                '1.0.0-final-' . time() . '-' . rand(1000, 9999),
                 true
             );
             
