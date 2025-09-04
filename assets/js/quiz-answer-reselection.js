@@ -72,7 +72,7 @@ if (typeof jQuery !== 'undefined') {
     
     function displayQuizDataInFooter(quizData) {
         // Remove existing debug info
-        $('#lilac-quiz-debug').remove();
+        jQuery('#lilac-quiz-debug').remove();
         
         // Get quiz progress information
         const position = getCurrentQuestionPosition();
@@ -120,7 +120,8 @@ if (typeof jQuery !== 'undefined') {
             </div>
         `;
         
-        $('body').append(debugHtml);
+        // Add to page
+        jQuery('body').append(debugHtml);
         
         console.log(`[LilacQuiz] 📊 Debug: Quiz:${quizData.quiz_id} | Q:${position.current}/${position.total} | ${quizData.source || 'Custom'}`);
     }
@@ -1062,6 +1063,29 @@ if (typeof jQuery !== 'undefined') {
         }
 
         return { hasInversion: false, reason: 'Validation appears consistent' };
+    }
+
+    /**
+     * Setup answer reselection functionality
+     */
+    function setupAnswerReselection() {
+        console.log('[LilacQuiz] Setting up answer reselection functionality');
+        
+        // Enable answer reselection after feedback
+        $(document).on('click', '.wpProQuiz_questionInput input', function() {
+            const $input = $(this);
+            const questionId = $input.closest('.wpProQuiz_listItem').data('pos') || 
+                             $input.closest('.wpProQuiz_questionList').data('question_id');
+            
+            console.log('[LilacQuiz] Answer reselection detected for question:', questionId);
+            
+            // Allow the selection
+            setTimeout(() => {
+                console.log('[LilacQuiz] Answer reselection enabled');
+            }, 100);
+        });
+        
+        console.log('[LilacQuiz] ✅ Answer reselection setup complete');
     }
 
     /**

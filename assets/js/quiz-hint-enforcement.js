@@ -176,6 +176,9 @@
     function onHintModalClosed() {
         log.info('🔓 Hint modal closed - enabling answer inputs');
         
+        // Mark hint as viewed in state
+        state.hintViewed = true;
+        
         // Enable all answer inputs
         enableAnswerInputs();
         
@@ -282,12 +285,139 @@
     }
     
     /**
+     * Enable all quiz inputs - remove all blocking
+     */
+    function enableAllQuizInputs() {
+        const inputs = document.querySelectorAll('.wpProQuiz_questionListItem input[type="radio"], .wpProQuiz_questionListItem input[type="checkbox"]');
+        
+        inputs.forEach(input => {
+            // Restore original state
+            input.disabled = input.dataset.originalDisabled === 'true';
+            input.style.opacity = input.dataset.originalOpacity || '1';
+            input.style.pointerEvents = input.dataset.originalPointerEvents || 'auto';
+            input.style.cursor = '';
+            
+            // Clean up data attributes
+            delete input.dataset.originalDisabled;
+            delete input.dataset.originalOpacity;
+            delete input.dataset.originalPointerEvents;
+            
+            // Restore parent container
+            const container = input.closest('.wpProQuiz_questionListItem');
+            if (container) {
+                container.style.opacity = '1';
+                container.style.position = '';
+                
+                // Remove blocking overlay
+                const overlay = container.querySelector('.quiz-blocked-overlay');
+                if (overlay) {
+                    overlay.remove();
+                }
+            }
+        });
+        
+        log.info('✅ All answer inputs enabled - ' + inputs.length + ' inputs restored');
+    }
+    
+    /**
      * Block ALL answer inputs on the page after wrong answer
      */
     function blockAllAnswerInputs() {
-        // DISABLED - No blocking for now, just log the attempt
-        log.info('🚫 Block attempt - but blocking is disabled for debugging');
-        return;
+        const inputs = document.querySelectorAll('.wpProQuiz_questionListItem input[type="radio"], .wpProQuiz_questionListItem input[type="checkbox"]');
+        
+        inputs.forEach(input => {
+            // Store original state before disabling
+            input.dataset.originalDisabled = input.disabled;
+            input.dataset.originalOpacity = input.style.opacity;
+            input.dataset.originalPointerEvents = input.style.pointerEvents;
+            
+            // Disable the input
+            input.disabled = true;
+            input.style.opacity = '0.3';
+            input.style.pointerEvents = 'none';
+            input.style.cursor = 'not-allowed';
+            
+            // Add visual feedback to parent container
+            const container = input.closest('.wpProQuiz_questionListItem');
+            if (container) {
+                container.style.opacity = '0.5';
+                container.style.position = 'relative';
+                
+                // Add blocking overlay
+                let overlay = container.querySelector('.quiz-blocked-overlay');
+                if (!overlay) {
+                    overlay = document.createElement('div');
+                    overlay.className = 'quiz-blocked-overlay';
+                    overlay.style.cssText = `
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(220, 53, 69, 0.1);
+                        border: 2px dashed #dc3545;
+                        border-radius: 8px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 10;
+                        pointer-events: none;
+                        font-weight: bold;
+                        color: #dc3545;
+                        font-size: 14px;
+                        text-align: center;
+                        direction: rtl;
+                    `;
+                    overlay.innerHTML = '🚫<br>חסום עד צפייה ברמז';
+                    container.appendChild(overlay);
+                }
+            }
+        });
+        
+        log.info('🚫 All answer inputs blocked - ' + inputs.length + ' inputs disabled');
+    }
+    
+    /**
+     * Prevent selection until hint is viewed - event handler
+     */
+    function preventSelectionUntilHint(event) {
+        if (!state.hintViewed) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            
+            // Show tooltip or alert
+            const tooltip = document.createElement('div');
+            tooltip.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: #dc3545;
+                color: white;
+                padding: 15px 25px;
+                border-radius: 8px;
+                font-weight: bold;
+                z-index: 20000;
+                direction: rtl;
+                text-align: center;
+                font-size: 16px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            `;
+            tooltip.textContent = 'חובה לצפות ברמז לפני בחירת תשובה נוספת!';
+            document.body.appendChild(tooltip);
+            
+            // Remove tooltip after 2 seconds
+            setTimeout(() => {
+                if (tooltip.parentNode) {
+                    tooltip.parentNode.removeChild(tooltip);
+                }
+            }, 2000);
+            
+            log.info('🚫 Selection blocked - hint not viewed yet');
+            return false;
+        }
+        return true;
     }
     
     /**
@@ -307,6 +437,10 @@
             delete input.dataset.originalDisabled;
             delete input.dataset.originalOpacity;
             delete input.dataset.originalPointerEvents;
+            
+            // Remove blocking event listeners
+            input.removeEventListener('click', preventSelectionUntilHint, true);
+            input.removeEventListener('change', preventSelectionUntilHint, true);
             
             // Remove visual feedback from parent container
             const container = input.closest('.wpProQuiz_questionListItem');
@@ -448,24 +582,16 @@
      * Disable answer inputs after wrong answer
      */
     function disableAnswerInputs() {
-    const inputs = document.querySelectorAll('.wpProQuiz_questionListItem input[type="radio"], .wpProQuiz_questionListItem input[type="checkbox"]');
-    inputs.forEach(input => {
-        input.disabled = true;
-        input.style.opacity = '0.5';
-    });
-    log.info('🚫 Answer inputs disabled');
+        // Use the enhanced blocking function
+        blockAllAnswerInputs();
     }
     
     /**
-     * Enable answer inputs after hint viewing
+     * Enable answer inputs after hint viewing (duplicate function - using main one above)
      */
-    function enableAnswerInputs() {
-    const inputs = document.querySelectorAll('.wpProQuiz_questionListItem input[type="radio"], .wpProQuiz_questionListItem input[type="checkbox"]');
-    inputs.forEach(input => {
-        input.disabled = false;
-        input.style.opacity = '1';
-    });
-    log.info('✅ Answer inputs re-enabled');
+    function enableAnswerInputsLegacy() {
+        // This is a duplicate - the main enableAnswerInputs function above handles this
+        enableAnswerInputs();
     }
     
     /**
@@ -569,6 +695,13 @@
                 
                 // Block ALL answer inputs on the page (not just current question)
                 blockAllAnswerInputs();
+                
+                // Also prevent any new selections by adding event blocking
+                const allInputs = document.querySelectorAll('.wpProQuiz_questionListItem input[type="radio"], .wpProQuiz_questionListItem input[type="checkbox"]');
+                allInputs.forEach(input => {
+                    input.addEventListener('click', preventSelectionUntilHint, true);
+                    input.addEventListener('change', preventSelectionUntilHint, true);
+                });
                 
                 // Add visual highlighting to hint area
                 existingHintBox.style.background = '#f8d7da !important';
@@ -722,48 +855,78 @@
         }, 500);
 }
 
-// Alternative initialization approach - use multiple methods
+// Alternative initialization approach - MINIMAL setup only
 $(document).ready(function() {
-    log.info('🚀 jQuery ready - starting hint enforcement');
-    initializeHintEnforcement();
+    log.info('🚀 jQuery ready - minimal hint enforcement setup');
     
+    // Only set up event listeners, don't initialize blocking
     // Set up universal event listener for answer changes - multiple selectors
     $(document).on('change click', 'input[type="radio"], input[type="checkbox"]', function(e) {
         log.info('🎯 Universal answer selection detected');
-        handleAnswerSelection(e);
+        // Only handle if we're in a blocking state
+        if (!state.hintViewed && state.canProceed === false) {
+            handleAnswerSelection(e);
+        }
     });
     
     // Also try specific quiz selectors
     $(document).on('change click', '.wpProQuiz_questionInput input, .wpProQuiz_listItem input', function(e) {
         log.info('🎯 Quiz-specific answer selection detected');
-        handleAnswerSelection(e);
+        // Only handle if we're in a blocking state
+        if (!state.hintViewed && state.canProceed === false) {
+            handleAnswerSelection(e);
+        }
     });
     
-    log.info('✅ Universal event delegation set up');
+    log.info('✅ Minimal event delegation set up - no blocking on load');
     
-    // Also try immediate initialization
+    // Force remove any existing blocks
     setTimeout(() => {
-        log.info('🔄 Backup initialization attempt');
-        const questions = document.querySelectorAll('.wpProQuiz_listItem');
-        log.info('📋 Backup found questions:', questions.length);
-        
-        if (questions.length > 0) {
-            questions.forEach((question, index) => {
-                setupQuestion(index, question);
-            });
-        }
-    }, 1000);
+        forceRemoveAllBlocks();
+        log.info('🔄 Forced removal of any existing blocks');
+    }, 500);
 });
 
-// Start initialization
-initializeHintEnforcement();
+// Start initialization - but DON'T block anything on load
+// initializeHintEnforcement(); // DISABLED - only initialize after wrong answer
 
-// Force remove all blocks immediately on load
-setTimeout(() => {
-    forceRemoveAllBlocks();
-}, 1000);
+// Force remove all blocks immediately on load and keep them removed
+forceRemoveAllBlocks();
 
-// Make forceRemoveAllBlocks available globally for debugging
+// Make functions available globally for debugging
 window.forceRemoveAllBlocks = forceRemoveAllBlocks;
+window.blockAllAnswerInputs = blockAllAnswerInputs;
+window.enableAllQuizInputs = enableAllQuizInputs;
+
+// Initialize hint box display on page load
+$(document).ready(function() {
+    // Create and display the hint message box at bottom
+    const hintBox = $('<div class="lilac-hint-message">');
+    hintBox.css({
+        'position': 'fixed',
+        'bottom': '20px',
+        'left': '50%',
+        'transform': 'translateX(-50%)',
+        'background': 'linear-gradient(135deg, #4a90e2 0%, #357abd 100%)',
+        'color': 'white',
+        'padding': '15px 25px',
+        'border-radius': '12px',
+        'font-size': '16px',
+        'font-weight': 'bold',
+        'text-align': 'center',
+        'direction': 'rtl',
+        'box-shadow': '0 4px 20px rgba(0,0,0,0.3)',
+        'z-index': '10000',
+        'max-width': '90%',
+        'border': '2px solid #ffffff40'
+    });
+    
+    hintBox.html('💡 רמזים זמינים - לחץ על כפתור הרמז לעזרה');
+    
+    // Add to page
+    $('body').append(hintBox);
+    
+    log.info('✅ Hint message box displayed at bottom');
+});
 
 })(jQuery);
