@@ -446,8 +446,14 @@ class Lilac_Quiz_Sidebar {
                 // Navigation control script moved to bu2 folder - disabled to prevent 404 errors
                 // Localize script call also removed since the script is no longer enqueued
                 
-                // OLD SCRIPT DISABLED - Using new hint enforcement system instead
-                // The new system is loaded via lilac_enqueue_question_detector() in main plugin file
+                // Load clean hint enforcement system
+                wp_enqueue_script(
+                    'lilac-quiz-hint-enforcement-clean',
+                    LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-hint-enforcement-clean.js',
+                    array('jquery'),
+                    LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(),
+                    true
+                );
                 /*
                 $script_handle = 'lilac-quiz-answer-reselection';
                 wp_register_script(

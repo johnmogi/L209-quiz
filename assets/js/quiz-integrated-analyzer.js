@@ -10,7 +10,6 @@
         correctAnswers: {},
         
         init: function() {
-            console.log('LILAC Integrated Analyzer: Starting initialization...');
             this.createFooterAnalyzer();
             this.loadCorrectAnswers();
             
@@ -22,7 +21,6 @@
             
             // Monitor for dynamic content changes
             this.setupMutationObserver();
-            console.log('LILAC Integrated Analyzer: Initialized');
         },
 
         setupMutationObserver: function() {
@@ -45,7 +43,6 @@
                 });
                 
                 if (shouldRedetect) {
-                    console.log('LILAC: New quiz content detected, re-scanning...');
                     setTimeout(() => {
                         self.detectQuizData();
                         self.updateAnalyzer();
@@ -73,7 +70,6 @@
                         // Execute the JavaScript to load answers
                         eval(data);
                         self.correctAnswers = window.lilacQuizCorrectAnswers || {};
-                        console.log('LILAC: Loaded', Object.keys(self.correctAnswers).length, 'correct answers for quiz', quizId);
                         self.updateAnalyzer();
                     } catch (e) {
                         console.error('LILAC: Error loading answers:', e);
@@ -120,30 +116,23 @@
                 });
             });
 
-            console.log('LILAC: Detected quiz', quizId, 'with', this.questions.length, 'questions');
         },
 
         extractQuizId: function() {
-            console.log('LILAC: Starting quiz ID detection...');
-            console.log('LILAC: Current URL:', window.location.href);
-            console.log('LILAC: Body classes:', $('body').attr('class'));
             
             // Method 1: Get from WordPress post ID (most reliable for quiz posts)
             const bodyClasses = $('body').attr('class') || '';
             const postIdMatch = bodyClasses.match(/postid-(\d+)/);
             if (postIdMatch) {
-                console.log('LILAC: Found WordPress post ID:', postIdMatch[1]);
                 return postIdMatch[1];
             }
 
             // Method 2: Get from single-sfwd_quiz class (LearnDash quiz post type)
             if (bodyClasses.includes('single-sfwd_quiz')) {
-                console.log('LILAC: Detected LearnDash quiz page');
                 // Look for quiz ID in various places
                 const quizIdMatch = bodyClasses.match(/quiz-id-(\d+)|quiz_(\d+)|postid-(\d+)/);
                 if (quizIdMatch) {
                     const quizId = quizIdMatch[1] || quizIdMatch[2] || quizIdMatch[3];
-                    console.log('LILAC: Found quiz ID from body classes:', quizId);
                     return quizId;
                 }
             }
@@ -153,7 +142,6 @@
             if (articleId) {
                 const match = articleId.match(/post-(\d+)/);
                 if (match) {
-                    console.log('LILAC: Found article post ID:', match[1]);
                     return match[1];
                 }
             }
@@ -171,31 +159,26 @@
             for (let pattern of urlPatterns) {
                 const match = url.match(pattern);
                 if (match) {
-                    console.log('LILAC: Found quiz ID from URL pattern:', match[1]);
                     return match[1];
                 }
             }
 
             // Method 5: Check for LearnDash quiz data in window
             if (window.learndash_quiz_data && window.learndash_quiz_data.quiz_id) {
-                console.log('LILAC: Found LearnDash quiz ID:', window.learndash_quiz_data.quiz_id);
                 return window.learndash_quiz_data.quiz_id;
             }
 
             // Method 6: Look for quiz ID in page meta or hidden inputs
             const metaQuizId = $('meta[name="quiz-id"], meta[property="quiz:id"]').attr('content');
             if (metaQuizId) {
-                console.log('LILAC: Found quiz ID in meta:', metaQuizId);
                 return metaQuizId;
             }
 
             const hiddenQuizId = $('input[name*="quiz_id"], input[name*="quiz-id"]').val();
             if (hiddenQuizId) {
-                console.log('LILAC: Found quiz ID in hidden input:', hiddenQuizId);
                 return hiddenQuizId;
             }
 
-            console.log('LILAC: No quiz ID found, using default');
             return '11702'; // Default quiz ID
         },
 
@@ -346,19 +329,19 @@
                     bottom: 0;
                     left: 0;
                     right: 0;
-                    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
-                    color: white;
+                    background: #ffffff;
+                    color: #333333;
                     padding: 15px 20px;
                     z-index: 999999;
                     font-family: Arial, sans-serif;
-                    box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
-                    border-top: 3px solid #1565C0;
+                    box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+                    border-top: 3px solid #2196F3;
                 ">
                     <div style="max-width: 1200px; margin: 0 auto;">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                             <div style="display: flex; align-items: center; margin-bottom: 5px;">
-                                <h3 style="margin: 0 15px 0 0; color: #fff; font-size: 18px;">🎯 Live Quiz Analyzer</h3>
-                                <div id="analyzer-stats" style="display: flex; gap: 20px; font-size: 14px;">
+                                <h3 style="margin: 0 15px 0 0; color: #2196F3; font-size: 18px;">🎯 Live Quiz Analyzer</h3>
+                                <div id="analyzer-stats" style="display: flex; gap: 20px; font-size: 14px; color: #333;">
                                     <span>Quiz: <strong id="quiz-id-display">${this.currentQuiz || 'Loading...'}</strong></span>
                                     <span>Questions: <strong id="questions-count">${this.questions.length}</strong></span>
                                     <span>Answers: <strong id="answers-loaded">Loading...</strong></span>
@@ -367,7 +350,7 @@
                             </div>
                             <div style="display: flex; gap: 10px; align-items: center;">
                                 <button id="toggle-analyzer-details" style="
-                                    background: rgba(255,255,255,0.2);
+                                    background: #2196F3;
                                     border: none;
                                     color: white;
                                     padding: 8px 15px;
@@ -391,9 +374,12 @@
                             display: none;
                             margin-top: 15px;
                             padding-top: 15px;
-                            border-top: 1px solid rgba(255,255,255,0.2);
+                            border-top: 1px solid #ddd;
                             max-height: 300px;
                             overflow-y: auto;
+                            background: #f9f9f9;
+                            border-radius: 5px;
+                            padding: 15px;
                         ">
                             <div id="questions-analysis"></div>
                         </div>
@@ -452,12 +438,12 @@
         },
 
         generateDetailedAnalysis: function() {
-            let analysisHtml = '<h4 style="margin: 0 0 10px 0; color: #fff;">🎯 Live Quiz Analysis</h4>';
+            let analysisHtml = '<h4 style="margin: 0 0 10px 0; color: #333;">🎯 Live Quiz Analysis</h4>';
             
             if (this.questions.length === 0) {
                 // Load questions directly from database like PHP demo
                 this.loadQuestionsFromDatabase();
-                analysisHtml += '<p>Loading questions from database...</p>';
+                analysisHtml += '<p style="color: #666;">Loading questions from database...</p>';
             } else {
                 analysisHtml += '<div style="display: grid; gap: 15px; max-height: 400px; overflow-y: auto;">';
                 
@@ -465,21 +451,22 @@
                     const hasCorrectAnswer = question.correctAnswer !== null;
                     const statusColor = hasCorrectAnswer ? '#4CAF50' : '#f44336';
                     const statusIcon = hasCorrectAnswer ? '✅' : '❌';
-                    const correctAnswerText = hasCorrectAnswer ? `${question.correctAnswer} Correct Answers` : 'No Answer';
+                    const correctAnswerText = hasCorrectAnswer ? `1 Correct Answer` : 'No Answer';
                     
                     analysisHtml += `
                         <div style="
-                            background: rgba(255,255,255,0.1);
+                            background: #ffffff;
                             padding: 15px;
                             border-radius: 8px;
                             border-left: 4px solid ${statusColor};
                             margin-bottom: 10px;
+                            border: 1px solid #e0e0e0;
                         ">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                 <strong style="color: #2196F3;">Question ${index + 1} of ${this.questions.length} (ID: ${question.id}) - </strong>
                                 <span style="color: ${statusColor};">${statusIcon} ${correctAnswerText}</span>
                             </div>
-                            <div style="font-size: 14px; margin: 10px 0; line-height: 1.4; color: #fff;">
+                            <div style="font-size: 14px; margin: 10px 0; line-height: 1.4; color: #333;">
                                 ${question.text || 'Question text not available'}
                             </div>
                             ${this.generateAnswerOptions(question)}
@@ -499,17 +486,18 @@
                 <div style="
                     margin-top: 15px;
                     padding: 15px;
-                    background: rgba(255,255,255,0.1);
+                    background: #ffffff;
                     border-radius: 8px;
+                    border: 1px solid #e0e0e0;
                 ">
-                    <h4 style="margin: 0 0 10px 0; color: #fff;">Performance Summary</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 13px; color: #fff;">
+                    <h4 style="margin: 0 0 10px 0; color: #333;">Performance Summary</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 13px; color: #333;">
                         <div><strong>Questions Processed:</strong> ${this.questions.length}</div>
                         <div><strong>Total Answers:</strong> ${totalAnswers}</div>
                         <div><strong>Correct Answers:</strong> ${correctCount}</div>
                         <div><strong>Processing Time:</strong> ${Math.round(processingTime)}ms ${processingTime < 100 ? 'Excellent' : processingTime < 500 ? 'Good' : 'Slow'}</div>
                     </div>
-                    <div style="margin-top: 10px; font-size: 12px; color: #fff;">
+                    <div style="margin-top: 10px; font-size: 12px; color: #666;">
                         <strong>Generated:</strong> ${new Date().toLocaleTimeString()} | <strong>System Ready:</strong> ${correctCount > 0 ? 'Yes' : 'No'}
                     </div>
                 </div>
@@ -523,13 +511,13 @@
                 return '<div style="color: #f44336; font-size: 12px;">No answer options found</div>';
             }
 
-            let optionsHtml = '<div style="margin-top: 10px;"><strong>Answer Options:</strong><br>';
+            let optionsHtml = '<div style="margin-top: 10px;"><strong style="color: #333;">Answer Options:</strong><br>';
             const optionLabels = ['A', 'B', 'C', 'D'];
             
             question.answers.forEach((answer, idx) => {
                 const isCorrect = question.correctAnswer && (idx + 1) === question.correctAnswer;
-                const bgColor = isCorrect ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255,255,255,0.1)';
-                const borderColor = isCorrect ? '#4CAF50' : '#eee';
+                const bgColor = isCorrect ? '#d4edda' : '#f8f9fa';
+                const borderColor = isCorrect ? '#4CAF50' : '#dee2e6';
                 
                 optionsHtml += `
                     <div style="
@@ -539,9 +527,10 @@
                         border: 1px solid ${borderColor};
                         border-radius: 4px;
                         font-size: 12px;
+                        color: #333;
                     ">
                         ${optionLabels[idx] || (idx + 1)}. ${answer.text || 'Answer text not available'}
-                        ${isCorrect ? ' <strong style="color: #4CAF50;">✓ Correct answer</strong>' : ''}
+                        ${isCorrect ? ' <strong style="color: #4CAF50;">✓ CORRECT</strong>' : ''}
                     </div>
                 `;
             });
@@ -576,7 +565,6 @@
                             }
                         });
                         
-                        console.log('LILAC: Loaded', self.questions.length, 'questions from database');
                         self.updateAnalyzer();
                         self.generateDetailedAnalysis();
                     }
@@ -642,7 +630,6 @@
             this.questions = [];
             this.detectQuizData();
             this.loadCorrectAnswers();
-            console.log('LILAC: Analyzer refreshed');
         }
     };
 
@@ -681,18 +668,12 @@
             // Initialize when DOM is ready
     $(document).ready(function() {
         // Debug: Log what elements we can find
-        console.log('LILAC: DOM Ready - Scanning for quiz elements...');
-        console.log('LILAC: .wpProQuiz_questionListItem found:', $('.wpProQuiz_questionListItem').length);
-        console.log('LILAC: .wpProQuiz_content found:', $('.wpProQuiz_content').length);
-        console.log('LILAC: input[type="radio"] found:', $('input[type="radio"]').length);
-        console.log('LILAC: All form inputs found:', $('input').length);
         
         // Always initialize - let the analyzer handle detection
         window.LilacQuizAnalyzer.init();
         
         // Also try after LearnDash loads
         setTimeout(function() {
-            console.log('LILAC: Delayed scan - Re-detecting questions...');
             window.LilacQuizAnalyzer.detectQuizData();
             window.LilacQuizAnalyzer.updateAnalyzer();
         }, 2000);

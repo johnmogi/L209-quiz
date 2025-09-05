@@ -1,40 +1,26 @@
 /**
- * LearnDash Quiz - Answer Reselection with Hint Enforcement
+ * LearnDash Quiz - Clean Hint Enforcement System
  * 
- * Enables users to reselect and submit answers after incorrect submission
- * Part of the Enforce Hint feature for the Lilac Quiz Sidebar plugin
- * Enhanced with modal hint display and correct answer detection
+ * Simple, reliable hint enforcement for quiz questions
+ * Shows hint requirement after wrong answers
  */
 (function($) {
     'use strict';
     
-    // Configuration
-    const config = {
-        debug: true,
-        enforceHintDelay: 300,
-        observerDelay: 500,
-        tooltipText: 'טעית! להמשך חובה לקחת רמז!',
-        answerDetection: true
-    };
-    
     // State management
     const state = {
         hintViewed: false,
-        canProceed: false,
-        currentQuestion: null
+        wrongAnswerGiven: false,
+        currentQuestionId: null
     };
     
-    // Debug logger - disabled for production
-    const log = {
-        info: function(message, data) {
-            // Debug logging disabled
-        },
-        error: function(message, data) {
-            // Error logging disabled
-        }
+    // Configuration
+    const config = {
+        hintBoxSelector: '.lilac-hint-message',
+        questionSelector: '.wpProQuiz_listItem',
+        inputSelector: 'input[type="radio"], input[type="checkbox"]',
+        hintButtonSelector: '.wpProQuiz_TipButton'
     };
-    
-    log.info('Quiz hint enforcement script loaded successfully');
     
     /**
      * Check if answer is correct using debugger data
