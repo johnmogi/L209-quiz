@@ -288,13 +288,16 @@ class Lilac_Quiz_Sidebar {
                 true
             );
             
+            // DISABLED - Conflicting with new hint system
+            /*
             wp_enqueue_script(
                 'lilac-quiz-hint-modal',
                 LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-hint-modal-system.js',
                 array('jquery'),
-                LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(), // Cache busting
+                LILAC_QUIZ_SIDEBAR_VERSION,
                 true
             );
+            */
             
             wp_enqueue_script(
                 'lilac-quiz-database-loader',
@@ -446,12 +449,12 @@ class Lilac_Quiz_Sidebar {
                 // Navigation control script moved to bu2 folder - disabled to prevent 404 errors
                 // Localize script call also removed since the script is no longer enqueued
                 
-                // Load clean hint enforcement system
+                // Load working hint button system (based on quiz-hint-button-working.js)
                 wp_enqueue_script(
-                    'lilac-quiz-hint-enforcement-clean',
-                    LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-hint-enforcement-clean.js',
+                    'lilac-quiz-hint-simple',
+                    LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-hint-simple.js',
                     array('jquery'),
-                    LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(),
+                    'DEBUG-' . time() . '-' . rand(1000, 9999),
                     true
                 );
                 /*
