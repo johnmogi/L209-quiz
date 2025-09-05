@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
 
 function lilac_get_quiz_data($quiz_id = 1) {
     global $wpdb;
-    
+
     // Get quiz questions and their answer data
     $questions = $wpdb->get_results($wpdb->prepare("
         SELECT 
@@ -33,7 +33,7 @@ function lilac_get_quiz_data($quiz_id = 1) {
         ORDER BY q.sort, q.id
         LIMIT 10
     ", $quiz_id));
-    
+
     return $questions;
 }
 
@@ -115,7 +115,7 @@ function lilac_parse_answer_data($answer_data) {
 
 function lilac_display_quiz_debug($quiz_id = 1) {
     $questions = lilac_get_quiz_data($quiz_id);
-    
+
     echo '<div style="
         position: fixed;
         bottom: 0;
@@ -133,33 +133,33 @@ function lilac_display_quiz_debug($quiz_id = 1) {
         direction: ltr;
         text-align: left;
     ">';
-    
+
     echo '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">';
     echo '<strong style="color: #ffff00;">LILAC QUIZ DEBUG - Quiz ID: ' . $quiz_id . '</strong>';
     echo '<button onclick="this.parentElement.parentElement.style.display=\'none\'" style="background: #ff0000; color: white; border: none; padding: 2px 8px; cursor: pointer;">×</button>';
     echo '</div>';
-    
+
     if (empty($questions)) {
         echo '<div style="color: #ff0000;">No questions found for quiz ID: ' . $quiz_id . '</div>';
         echo '</div>';
         return;
     }
-    
+
     echo '<div>Found ' . count($questions) . ' questions:</div><br>';
-    
+
     foreach ($questions as $question) {
         echo '<div style="margin-bottom: 15px; border: 1px solid #333; padding: 10px; background: #111;">';
         echo '<div style="color: #ffff00; font-weight: bold;">Question ID: ' . $question->question_id . '</div>';
         echo '<div style="color: #ccc; margin: 5px 0;">Type: ' . $question->answer_type . '</div>';
         echo '<div style="color: #ccc; margin: 5px 0;">Status: ' . $question->answer_status . '</div>';
         echo '<div style="color: #fff; margin: 5px 0;">Question: ' . strip_tags($question->question) . '</div>';
-        
+
         // Show raw answer data for debugging
         echo '<div style="color: #888; margin: 5px 0; font-size: 10px;">Raw Data: ' . htmlspecialchars(substr($question->answer_data, 0, 200)) . '...</div>';
-        
+
         // Parse and display answers
         $answers = lilac_parse_answer_data($question->answer_data);
-        
+
         if (isset($answers['error'])) {
             echo '<div style="color: #ff0000;">Error: ' . $answers['error'] . '</div>';
         } else {
@@ -172,10 +172,10 @@ function lilac_display_quiz_debug($quiz_id = 1) {
                 echo '</div>';
             }
         }
-        
+
         echo '</div>';
     }
-    
+
     echo '</div>';
 }
 

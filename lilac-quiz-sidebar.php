@@ -22,15 +22,18 @@ define('LILAC_QUIZ_SIDEBAR_VERSION', '1.0.0');
 define('LILAC_QUIZ_SIDEBAR_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('LILAC_QUIZ_SIDEBAR_PLUGIN_URL', plugin_dir_url(__FILE__));
 
-// Include the main class
-require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'includes/class-quiz-sidebar.php';
+        // Include main class
+        require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'includes/class-quiz-sidebar.php';
+        
+        // Include AJAX handler
+        require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'includes/quiz-ajax-handler.php';
 
 // Include additional functionality
 require_once plugin_dir_path(__FILE__) . 'includes/quiz-functions.php';
 require_once plugin_dir_path(__FILE__) . 'includes/ajax-handlers.php';
 
-// Include quiz debug functionality - temporarily disabled due to reflection errors
-// require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'quiz-debug.php';
+// Include quiz debug functionality
+require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'quiz-debug.php';
 
 // Note: Script enqueuing moved to class-quiz-sidebar.php to avoid conflicts
 

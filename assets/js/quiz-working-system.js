@@ -21,7 +21,10 @@ jQuery(document).ready(function($) {
         
         // 3. Initialize debugger for admins
         if ($('body').hasClass('admin-bar')) {
-            initDebugger();
+            // Delay debugger initialization to ensure answers are loaded
+            setTimeout(function() {
+                initDebugger();
+            }, 500);
         }
         
         console.log('✅ Quiz system initialized successfully');
@@ -151,6 +154,8 @@ jQuery(document).ready(function($) {
                     <div>Questions: ${$('.wpProQuiz_questionList').length}</div>
                     <div>Hint Buttons: ${$('.wpProQuiz_TipButton').length}</div>
                     <div>Custom Hint: ${$('.lilac-hint-button').length ? '✅' : '❌'}</div>
+                    <div>Correct Answers: ${getCorrectAnswersCount()}</div>
+                    <div>Database Status: ${getDatabaseStatus()}</div>
                 </div>
                 <button id="refresh-debug" style="
                     background: #667eea;
@@ -167,12 +172,32 @@ jQuery(document).ready(function($) {
         
         $('body').append($debugger);
         
+        // Add helper functions for debugger
+        window.getCorrectAnswersCount = function() {
+            if (typeof window.lilacQuizCorrectAnswers !== 'undefined') {
+                const count = Object.keys(window.lilacQuizCorrectAnswers).length;
+                console.log('LILAC Debugger: Found', count, 'correct answers');
+                return count;
+            }
+            console.log('LILAC Debugger: No correct answers found');
+            return 0;
+        };
+        
+        window.getDatabaseStatus = function() {
+            if (typeof window.lilacQuizCorrectAnswers !== 'undefined' && Object.keys(window.lilacQuizCorrectAnswers).length > 0) {
+                return '✅ Connected';
+            }
+            return '❌ No Data';
+        };
+        
         $('#refresh-debug').on('click', function() {
             $('#debug-info').html(`
                 <div>Quiz Container: ${$('.wpProQuiz_content').length ? '✅' : '❌'}</div>
                 <div>Questions: ${$('.wpProQuiz_questionList').length}</div>
                 <div>Hint Buttons: ${$('.wpProQuiz_TipButton').length}</div>
                 <div>Custom Hint: ${$('.lilac-hint-button').length ? '✅' : '❌'}</div>
+                <div>Correct Answers: ${getCorrectAnswersCount()}</div>
+                <div>Database Status: ${getDatabaseStatus()}</div>
                 <div>Time: ${new Date().toLocaleTimeString()}</div>
             `);
         });

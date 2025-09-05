@@ -403,18 +403,4 @@ function lilac_get_all_quiz_questions($quiz_id) {
     wp_send_json_success($response);
 }
 
-/**
- * Enqueue nonce for AJAX security
- */
-function lilac_enqueue_quiz_nonce() {
-    if (is_singular('sfwd-quiz') || strpos($_SERVER['REQUEST_URI'], '/quiz') !== false) {
-        wp_localize_script('jquery', 'lilacQuizData', [
-            'nonce' => wp_create_nonce('lilac_quiz_nonce'),
-            'ajax_url' => admin_url('admin-ajax.php')
-        ]);
-        
-        // Also add to window object directly
-        echo '<script>window.lilacQuizNonce = "' . wp_create_nonce('lilac_quiz_nonce') . '";</script>';
-    }
-}
-add_action('wp_enqueue_scripts', 'lilac_enqueue_quiz_nonce');
+// Note: lilac_enqueue_quiz_nonce() function is declared in quiz-ajax-handler.php
