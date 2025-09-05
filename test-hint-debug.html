@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hint System Debug Test</title>
+    <style>
+        .wpProQuiz_listItem {
+            border: 1px solid #ccc;
+            margin: 20px;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+        .wpProQuiz_questionListItem {
+            margin: 10px 0;
+        }
+        .wpProQuiz_question_text {
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Quiz Hint System Debug Test</h1>
+    
+    <div class="wpProQuiz_listItem">
+        <div class="wpProQuiz_question_text">Test Question 1: What is 2+2?</div>
+        <div class="wpProQuiz_questionListItem">
+            <input type="button" value="Check" class="wpProQuiz_button">
+        </div>
+    </div>
+    
+    <div class="wpProQuiz_listItem">
+        <div class="wpProQuiz_question_text">Test Question 2: What is the capital of France?</div>
+        <div class="wpProQuiz_questionListItem">
+            <input type="button" value="Check" class="wpProQuiz_button">
+        </div>
+    </div>
+
+    <script>
+        // Load our hint system
+        console.log('🧪 TEST: Loading hint system...');
+        
+        // Simulate jQuery if not available
+        if (typeof jQuery === 'undefined') {
+            window.jQuery = window.$ = {
+                ready: function(fn) { 
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', fn);
+                    } else {
+                        fn();
+                    }
+                }
+            };
+        }
+        
+        // Load the hint script with absolute path
+        const script = document.createElement('script');
+        script.src = './assets/js/quiz-hint-basic.js?test=' + Date.now();
+        script.onload = function() {
+            console.log('🧪 TEST: Hint script loaded successfully');
+        };
+        script.onerror = function(e) {
+            console.error('🧪 TEST: Failed to load hint script:', e);
+            console.error('🧪 TEST: Script src was:', script.src);
+            
+            // Try direct inline version
+            console.log('🧪 TEST: Trying inline version...');
+            const inlineScript = document.createElement('script');
+            inlineScript.innerHTML = `
+                console.log('🧪 INLINE TEST: Starting basic hint system...');
+                
+                function addTestHintButtons() {
+                    console.log('🧪 INLINE TEST: Looking for quiz questions...');
+                    const questions = document.querySelectorAll('.wpProQuiz_listItem');
+                    console.log('🧪 INLINE TEST: Found', questions.length, 'questions');
+                    
+                    questions.forEach(function(question, index) {
+                        if (question.querySelector('.test-hint-btn')) return;
+                        
+                        const buttonContainer = question.querySelector('.wpProQuiz_questionListItem');
+                        if (!buttonContainer) return;
+                        
+                        const hintBtn = document.createElement('input');
+                        hintBtn.type = 'button';
+                        hintBtn.value = 'TEST HINT';
+                        hintBtn.className = 'wpProQuiz_button test-hint-btn';
+                        hintBtn.style.cssText = 'margin-right: 10px; background: red; color: white; padding: 10px;';
+                        
+                        hintBtn.onclick = function() {
+                            alert('TEST HINT CLICKED for question ' + (index + 1));
+                        };
+                        
+                        buttonContainer.insertBefore(hintBtn, buttonContainer.firstChild);
+                        console.log('🧪 INLINE TEST: Added test hint button to question', index + 1);
+                    });
+                }
+                
+                setTimeout(addTestHintButtons, 500);
+                setTimeout(addTestHintButtons, 2000);
+            `;
+            document.head.appendChild(inlineScript);
+        };
+        document.head.appendChild(script);
+        
+        // Debug info
+        setTimeout(function() {
+            console.log('🧪 TEST: Checking for hint buttons...');
+            const hintButtons = document.querySelectorAll('.basic-hint-btn');
+            console.log('🧪 TEST: Found', hintButtons.length, 'hint buttons');
+            
+            if (hintButtons.length === 0) {
+                console.error('🧪 TEST: NO HINT BUTTONS FOUND!');
+                console.log('🧪 TEST: Available quiz items:', document.querySelectorAll('.wpProQuiz_listItem').length);
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

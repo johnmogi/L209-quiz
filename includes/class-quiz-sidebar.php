@@ -449,14 +449,114 @@ class Lilac_Quiz_Sidebar {
                 // Navigation control script moved to bu2 folder - disabled to prevent 404 errors
                 // Localize script call also removed since the script is no longer enqueued
                 
-                // Load working hint button system (based on quiz-hint-button-working.js)
-                wp_enqueue_script(
-                    'lilac-quiz-hint-simple',
-                    LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-hint-simple.js',
-                    array('jquery'),
-                    'DEBUG-' . time() . '-' . rand(1000, 9999),
-                    true
-                );
+                // INLINE HINT SYSTEM - Direct implementation to avoid loading issues
+                wp_add_inline_script('jquery', '
+                    console.log("🚀 INLINE HINT SYSTEM: Starting direct implementation");
+                    
+                    function addDirectHintButtons() {
+                        console.log("🚀 INLINE HINT: Looking for quiz questions...");
+                        
+                        var questions = document.querySelectorAll(".wpProQuiz_listItem");
+                        console.log("🚀 INLINE HINT: Found " + questions.length + " quiz questions");
+                        
+                        if (questions.length === 0) {
+                            console.log("🚀 INLINE HINT: No quiz questions found, will retry...");
+                            return;
+                        }
+                        
+                        questions.forEach(function(question, index) {
+                            if (question.querySelector(".direct-hint-btn")) {
+                                return; // Already has hint button
+                            }
+                            
+                            console.log("🚀 INLINE HINT: Processing question " + (index + 1));
+                            
+                            var buttonContainer = question.querySelector(".wpProQuiz_questionListItem") || 
+                                                question.querySelector("[class*=button]") || 
+                                                question;
+                            
+                            if (!buttonContainer) {
+                                console.log("🚀 INLINE HINT: No button container found for question " + (index + 1));
+                                return;
+                            }
+                            
+                            var hintBtn = document.createElement("input");
+                            hintBtn.type = "button";
+                            hintBtn.value = "רמז";
+                            hintBtn.className = "wpProQuiz_button direct-hint-btn";
+                            hintBtn.style.cssText = "margin-right: 10px !important; background: #007cba !important; color: white !important; padding: 8px 15px !important; border: none !important; border-radius: 3px !important; cursor: pointer !important;";
+                            
+                            hintBtn.onclick = function() {
+                                console.log("🚀 INLINE HINT: Button clicked for question " + (index + 1));
+                                showDirectHint(question, index + 1);
+                            };
+                            
+                            if (buttonContainer.firstChild) {
+                                buttonContainer.insertBefore(hintBtn, buttonContainer.firstChild);
+                            } else {
+                                buttonContainer.appendChild(hintBtn);
+                            }
+                            
+                            console.log("🚀 INLINE HINT: Added hint button to question " + (index + 1));
+                        });
+                        
+                        console.log("🚀 INLINE HINT: Finished processing " + questions.length + " questions");
+                    }
+                    
+                    function showDirectHint(question, questionNum) {
+                        console.log("🚀 INLINE HINT: Showing hint for question " + questionNum);
+                        
+                        var hintDiv = question.querySelector(".direct-hint-content");
+                        
+                        if (hintDiv) {
+                            if (hintDiv.style.display === "none") {
+                                hintDiv.style.display = "block";
+                                console.log("🚀 INLINE HINT: Showing existing hint");
+                            } else {
+                                hintDiv.style.display = "none";
+                                console.log("🚀 INLINE HINT: Hiding hint");
+                                return;
+                            }
+                        } else {
+                            hintDiv = document.createElement("div");
+                            hintDiv.className = "direct-hint-content";
+                            hintDiv.style.cssText = "background: #f0f8ff !important; border: 2px solid #007cba !important; padding: 15px !important; margin: 10px 0 !important; border-radius: 5px !important; font-family: Arial, sans-serif !important; direction: rtl !important;";
+                            hintDiv.innerHTML = "<h5 style=\"margin: 0 0 10px !important; color: #007cba !important; font-size: 16px !important;\">רמז</h5><p style=\"margin: 0 !important; color: #333 !important; line-height: 1.5 !important;\">נסה לחשוב על התשובה הנכונה. אם אתה מתקשה, פנה למורה לעזרה.</p>";
+                            
+                            var questionText = question.querySelector(".wpProQuiz_question_text") || 
+                                             question.querySelector(".wpProQuiz_question") || 
+                                             question.firstElementChild;
+                            
+                            if (questionText && questionText.parentNode) {
+                                questionText.parentNode.insertBefore(hintDiv, questionText.nextSibling);
+                            } else {
+                                question.appendChild(hintDiv);
+                            }
+                            
+                            console.log("🚀 INLINE HINT: Created and inserted hint for question " + questionNum);
+                        }
+                    }
+                    
+                    // Initialize when jQuery is ready
+                    jQuery(document).ready(function($) {
+                        console.log("🚀 INLINE HINT: jQuery ready, initializing...");
+                        
+                        // Multiple initialization attempts
+                        setTimeout(addDirectHintButtons, 500);
+                        setTimeout(addDirectHintButtons, 1500);
+                        setTimeout(addDirectHintButtons, 3000);
+                        
+                        // Watch for DOM changes
+                        if (window.MutationObserver) {
+                            var observer = new MutationObserver(function() {
+                                addDirectHintButtons();
+                            });
+                            observer.observe(document.body, { childList: true, subtree: true });
+                        }
+                        
+                        console.log("🚀 INLINE HINT: Initialization complete");
+                    });
+                ');
                 /*
                 $script_handle = 'lilac-quiz-answer-reselection';
                 wp_register_script(
