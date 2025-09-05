@@ -119,15 +119,20 @@
      * Trigger the native hint functionality
      */
     function triggerHint() {
+        console.log('🎯 LILAC HINT SIMPLE: Triggering hint...');
+        
         // Try to find and click native hint button
         const nativeHintBtn = $('.wpProQuiz_TipButton, .wpProQuiz_tipButton, input[value*="רמז"], button[class*="hint"], .wpProQuiz_button[name="tip"]');
+        console.log('🔍 LILAC HINT SIMPLE: Found native hint buttons:', nativeHintBtn.length);
         
         if (nativeHintBtn.length > 0) {
+            console.log('✅ LILAC HINT SIMPLE: Clicking native hint button');
             nativeHintBtn.first().trigger('click');
             state.hintViewed = true;
             showHintViewedToast();
         } else {
-            // Show custom hint content
+            // Always show custom hint - no alerts
+            console.log('💡 LILAC HINT SIMPLE: No native hint found, showing custom hint');
             showCustomHint();
         }
         
@@ -141,6 +146,7 @@
      * Show custom hint when no native hint available
      */
     function showCustomHint() {
+        console.log('💡 LILAC HINT SIMPLE: Showing custom hint modal...');
         const hintContent = getHintForCurrentQuestion();
         
         const hintDisplay = $(`
@@ -152,15 +158,16 @@
                 background: white;
                 padding: 30px;
                 border-radius: 12px;
-                box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+                box-shadow: 0 15px 35px rgba(0,0,0,0.3);
                 z-index: 15000;
                 max-width: 500px;
                 width: 90%;
                 text-align: center;
                 direction: rtl;
                 border: 3px solid #667eea;
+                font-family: Arial, sans-serif;
             ">
-                <div style="color: #667eea; font-size: 24px; margin-bottom: 20px;">
+                <div style="color: #667eea; font-size: 24px; margin-bottom: 20px; font-weight: bold;">
                     💡 רמז לשאלה
                 </div>
                 <div style="font-size: 16px; line-height: 1.6; margin-bottom: 25px; color: #333;">
@@ -175,7 +182,8 @@
                     cursor: pointer;
                     font-size: 16px;
                     font-weight: bold;
-                ">הבנתי</button>
+                    transition: all 0.3s;
+                ">הבנתי, תודה</button>
             </div>
         `);
         
@@ -187,12 +195,20 @@
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0,0,0,0.5);
+                background: rgba(0,0,0,0.6);
                 z-index: 14000;
+                backdrop-filter: blur(2px);
             "></div>
         `);
         
+        // Add hover effect
+        hintDisplay.find('.close-hint').hover(
+            function() { $(this).css('background', '#5a6fd8'); },
+            function() { $(this).css('background', '#667eea'); }
+        );
+        
         hintDisplay.find('.close-hint').on('click', function() {
+            console.log('✅ LILAC HINT SIMPLE: Custom hint closed');
             state.hintViewed = true;
             hintDisplay.remove();
             backdrop.remove();
@@ -200,6 +216,7 @@
         });
         
         backdrop.on('click', function() {
+            console.log('✅ LILAC HINT SIMPLE: Custom hint closed via backdrop');
             state.hintViewed = true;
             hintDisplay.remove();
             backdrop.remove();
@@ -207,6 +224,7 @@
         });
         
         $('body').append(backdrop).append(hintDisplay);
+        console.log('✅ LILAC HINT SIMPLE: Custom hint modal displayed');
     }
     
     /**

@@ -179,6 +179,8 @@ function lilac_display_quiz_debug($quiz_id = 1) {
     echo '</div>';
 }
 
+// DISABLED - Debug panel causes unwanted footer output and conflicts with clean UI
+/*
 // Hook to display debug info in footer
 add_action('wp_footer', function() {
     // Only show on quiz pages or when debug parameter is present
@@ -187,6 +189,7 @@ add_action('wp_footer', function() {
         lilac_display_quiz_debug($quiz_id);
     }
 });
+*/
 
 // Add admin menu for testing
 add_action('admin_menu', function() {
