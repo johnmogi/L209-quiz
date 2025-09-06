@@ -465,6 +465,15 @@ class Lilac_Quiz_Sidebar {
                     'DEBUG-' . time() . '-' . rand(1000, 9999),
                     true
                 );
+                
+                // Load the integrated analyzer for live quiz analysis
+                wp_enqueue_script(
+                    'lilac-quiz-integrated-analyzer',
+                    LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-integrated-analyzer.js',
+                    array('jquery'),
+                    LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(), // Cache busting
+                    true
+                );
                 /*
                 $script_handle = 'lilac-quiz-answer-reselection';
                 wp_register_script(
