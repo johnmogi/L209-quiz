@@ -45,8 +45,22 @@
         // Listen for hint button clicks
         $(document).on('click', '.wpProQuiz_TipButton, .wpProQuiz_hint', handleHintClick);
         
-        // Watch for feedback insertion
-        $(document).on('DOMNodeInserted', '.wpProQuiz_incorrect, .wpProQuiz_correct', handleFeedbackDisplay);
+        // Watch for feedback insertion using modern MutationObserver
+        if (window.MutationObserver) {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1) { // Element node
+                            const $node = $(node);
+                            if ($node.hasClass('wpProQuiz_incorrect') || $node.hasClass('wpProQuiz_correct')) {
+                                handleFeedbackDisplay.call(node);
+                            }
+                        }
+                    });
+                });
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
         
         // Continuous monitoring for UI fixes
         setInterval(function() {
