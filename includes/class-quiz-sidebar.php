@@ -263,11 +263,27 @@ class Lilac_Quiz_Sidebar {
             error_log('Lilac Quiz Sidebar: Has sidebar: ' . print_r($has_sidebar, true));
             error_log('Lilac Quiz Sidebar: Enforce hint: ' . print_r($enforce_hint, true));
             
+            // Load main quiz hint enforcement system first
+            wp_enqueue_script(
+                'lilac-quiz-hint-enforcement',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-hint-enforcement.js',
+                array('jquery'),
+                LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(), // Cache busting
+                true
+            );
+            
+            // Localize AJAX data for the quiz system
+            wp_localize_script('lilac-quiz-hint-enforcement', 'lilac_quiz_ajax', array(
+                'ajax_url' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('lilac_quiz_nonce'),
+                'quiz_id' => $quiz_id
+            ));
+            
             // Always load enhanced debugger scripts
             wp_enqueue_script(
                 'lilac-quiz-detector-enhanced',
                 LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-question-detector-enhanced.js',
-                array('jquery'),
+                array('jquery', 'lilac-quiz-hint-enforcement'),
                 LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(), // Cache busting
                 true
             );
