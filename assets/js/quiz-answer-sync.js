@@ -200,16 +200,25 @@
             }
         }
         
-        // Method 4: Try to match question text with backend data
+        // Method 4: Try to match question text with backend data (enhanced matching)
         if (!questionId) {
-            const questionText = questionElement.find('.wpProQuiz_question_text, .question-text').text().trim();
-            if (questionText && questionText.length > 20) {
+            const questionText = questionElement.find('.wpProQuiz_question_text, .question-text, h5').text().trim();
+            if (questionText && questionText.length > 10) {
                 // Search for matching question text in our data
                 Object.keys(window.LilacAnswerSync.correctAnswers).forEach(qId => {
                     const correctData = window.LilacAnswerSync.correctAnswers[qId];
-                    if (correctData.questionText && questionText.includes(correctData.questionText.substring(0, 30))) {
-                        questionId = qId;
-                        return false;
+                    if (correctData.questionText) {
+                        // More flexible matching for Hebrew text
+                        const cleanBackendText = correctData.questionText.replace(/[^\u05D0-\u05EA\s]/g, '').trim();
+                        const cleanQuestionText = questionText.replace(/[^\u05D0-\u05EA\s]/g, '').trim();
+                        
+                        if (cleanBackendText && cleanQuestionText && 
+                            (cleanQuestionText.includes(cleanBackendText.substring(0, Math.min(20, cleanBackendText.length))) ||
+                             cleanBackendText.includes(cleanQuestionText.substring(0, Math.min(20, cleanQuestionText.length))))) {
+                            questionId = qId;
+                            console.log('🎯 Matched question by text:', qId, cleanQuestionText.substring(0, 30));
+                            return false;
+                        }
                     }
                 });
             }

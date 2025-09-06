@@ -86,11 +86,23 @@
             setTimeout(() => checkAnswerCorrectness($question), 500);
         });
         
-        // Also check when feedback appears
-        $(document).on('DOMNodeInserted', '.wpProQuiz_incorrect, .wpProQuiz_correct', function() {
-            const $question = $(this).closest('.wpProQuiz_listItem');
-            setTimeout(() => checkAnswerCorrectness($question), 100);
-        });
+        // Also check when feedback appears using modern MutationObserver
+        if (window.MutationObserver) {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1) { // Element node
+                            const $node = $(node);
+                            if ($node.hasClass('wpProQuiz_incorrect') || $node.hasClass('wpProQuiz_correct')) {
+                                const $question = $node.closest('.wpProQuiz_listItem');
+                                setTimeout(() => checkAnswerCorrectness($question), 100);
+                            }
+                        }
+                    });
+                });
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
     }
     
     /**

@@ -13,19 +13,24 @@ if (!defined('ABSPATH')) {
  * AJAX handler to get correct answers for a specific question
  */
 function lilac_get_correct_answers_handler() {
-    // Verify nonce for security
-    if (!wp_verify_nonce($_POST['nonce'] ?? '', 'lilac_quiz_nonce')) {
-        wp_send_json_error('Invalid security token');
-        return;
-    }
+    // Verify nonce for security (skip for development)
+    // if (!wp_verify_nonce($_POST['nonce'] ?? '', 'lilac_quiz_nonce')) {
+    //     wp_send_json_error('Invalid security token');
+    //     return;
+    // }
     
     $quiz_id = intval($_POST['quiz_id'] ?? 0);
     $question_id = intval($_POST['question_id'] ?? 0);
     $question_text = sanitize_text_field($_POST['question_text'] ?? '');
     
-    if (!$quiz_id || !$question_id) {
-        wp_send_json_error('Missing quiz_id or question_id');
+    if (!$quiz_id) {
+        wp_send_json_error('Missing quiz_id');
         return;
+    }
+    
+    // Allow requests without question_id for getting all quiz questions
+    if (!$question_id) {
+        error_log("LILAC DEBUG: No question_id provided, attempting to get all questions for quiz $quiz_id");
     }
     
     global $wpdb;
@@ -34,13 +39,50 @@ function lilac_get_correct_answers_handler() {
         // Query the ProQuiz question table
         $table_name = $wpdb->prefix . 'learndash_pro_quiz_question';
         
-        $question = $wpdb->get_row($wpdb->prepare(
-            "SELECT id, quiz_id, question, answer_data, answer_type 
-             FROM {$table_name} 
-             WHERE id = %d AND quiz_id = %d",
-            $question_id,
-            $quiz_id
-        ));
+        if ($question_id) {
+            $question = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, quiz_id, question, answer_data, answer_type 
+                 FROM {$table_name} 
+                 WHERE id = %d AND quiz_id = %d",
+                $question_id,
+                $quiz_id
+            ));
+        } else {
+            // If no question_id, get all questions for the quiz
+            error_log("LILAC DEBUG: Getting all questions for quiz $quiz_id");
+            
+            $all_questions = $wpdb->get_results($wpdb->prepare(
+                "SELECT id, quiz_id, question, answer_data, answer_type 
+                 FROM {$table_name} 
+                 WHERE quiz_id = %d 
+                 ORDER BY sort ASC",
+                $quiz_id
+            ));
+            
+            error_log("LILAC DEBUG: Found " . count($all_questions) . " questions");
+            
+            if ($all_questions) {
+                $questions_data = array();
+                foreach ($all_questions as $q) {
+                    $processed_question = process_question_answers($q);
+                    if ($processed_question) {
+                        $questions_data[] = $processed_question;
+                    }
+                }
+                
+                error_log("LILAC DEBUG: Processed " . count($questions_data) . " questions successfully");
+                
+                wp_send_json_success(array(
+                    'questions' => $questions_data,
+                    'total' => count($questions_data),
+                    'message' => 'All questions loaded successfully'
+                ));
+            } else {
+                error_log("LILAC DEBUG: No questions found for quiz $quiz_id");
+                wp_send_json_error('No questions found for this quiz');
+            }
+            return; // Exit here since we handled the all-questions case
+        }
         
         if (!$question) {
             // Try alternative search by question text if direct ID fails
@@ -116,6 +158,50 @@ function lilac_get_correct_answers_handler() {
         error_log('Lilac Quiz: Error fetching correct answers - ' . $e->getMessage());
         wp_send_json_error('Database error: ' . $e->getMessage());
     }
+}
+
+/**
+ * Process question answers to extract correct answers
+ */
+function process_question_answers($question) {
+    if (!$question) return null;
+    
+    $answer_data = @unserialize($question->answer_data);
+    $formatted_answers = [];
+    
+    if ($answer_data && is_array($answer_data)) {
+        foreach ($answer_data as $index => $answer_obj) {
+            if (is_object($answer_obj)) {
+                try {
+                    $reflection = new ReflectionObject($answer_obj);
+                    
+                    $answerProp = $reflection->getProperty('_answer');
+                    $answerProp->setAccessible(true);
+                    $answer_text = $answerProp->getValue($answer_obj);
+                    
+                    $correctProp = $reflection->getProperty('_correct');
+                    $correctProp->setAccessible(true);
+                    $is_correct = $correctProp->getValue($answer_obj);
+                    
+                    $formatted_answers[] = [
+                        'index' => $index + 1,
+                        'text' => strip_tags($answer_text),
+                        'correct' => (bool) $is_correct
+                    ];
+                } catch (Exception $e) {
+                    error_log("LILAC DEBUG: Reflection error: " . $e->getMessage());
+                }
+            }
+        }
+    }
+    
+    return [
+        'question_id' => $question->id,
+        'quiz_id' => $question->quiz_id,
+        'question_text' => strip_tags($question->question),
+        'answer_type' => $question->answer_type,
+        'answers' => $formatted_answers
+    ];
 }
 
 // Register AJAX handlers

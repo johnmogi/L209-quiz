@@ -263,11 +263,27 @@ class Lilac_Quiz_Sidebar {
             error_log('Lilac Quiz Sidebar: Has sidebar: ' . print_r($has_sidebar, true));
             error_log('Lilac Quiz Sidebar: Enforce hint: ' . print_r($enforce_hint, true));
             
+            // Load main quiz hint enforcement system first
+            wp_enqueue_script(
+                'lilac-quiz-hint-enforcement',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-hint-enforcement.js',
+                array('jquery'),
+                LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(), // Cache busting
+                true
+            );
+            
+            // Localize AJAX data for the quiz system
+            wp_localize_script('lilac-quiz-hint-enforcement', 'lilac_quiz_ajax', array(
+                'ajax_url' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('lilac_quiz_nonce'),
+                'quiz_id' => $quiz_id
+            ));
+            
             // Always load enhanced debugger scripts
             wp_enqueue_script(
                 'lilac-quiz-detector-enhanced',
                 LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-question-detector-enhanced.js',
-                array('jquery'),
+                array('jquery', 'lilac-quiz-hint-enforcement'),
                 LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(), // Cache busting
                 true
             );
@@ -290,16 +306,27 @@ class Lilac_Quiz_Sidebar {
             
             // REBUILT: Load new functional debug and feedback systems
             wp_enqueue_script(
+<<<<<<< HEAD
                 'lilac-quiz-debug-rebuilt',
                 LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-debug-rebuilt.js',
                 array('jquery'),
+=======
+                'lilac-quiz-answer-correction',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-answer-correction.js',
+                array('jquery', 'lilac-quiz-live-integration'),
+>>>>>>> 84725d43e7ba138d6533bcd8935436f0b59b85c4
                 LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(), // Cache busting
                 true
             );
             
             wp_enqueue_script(
+<<<<<<< HEAD
                 'lilac-quiz-ui-feedback-rebuilt',
                 LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-ui-feedback-rebuilt.js',
+=======
+                'lilac-quiz-ui-feedback',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-ui-feedback-system.js',
+>>>>>>> 84725d43e7ba138d6533bcd8935436f0b59b85c4
                 array('jquery'),
                 LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(), // Cache busting
                 true
@@ -466,6 +493,7 @@ class Lilac_Quiz_Sidebar {
                 // Navigation control script moved to bu2 folder - disabled to prevent 404 errors
                 // Localize script call also removed since the script is no longer enqueued
                 
+<<<<<<< HEAD
                 // Load working hint button system (based on quiz-hint-button-working.js)
                 wp_enqueue_script(
                     'lilac-quiz-hint-simple',
@@ -483,6 +511,183 @@ class Lilac_Quiz_Sidebar {
                     LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(), // Cache busting
                     true
                 );
+=======
+                // ENHANCED MODAL HINT SYSTEM - Populates with actual question content
+                wp_add_inline_script('jquery', '
+                    console.log("🚀 ENHANCED MODAL HINT SYSTEM: Starting implementation");
+                    
+                    // Create modal HTML structure
+                    function createHintModal() {
+                        if (document.getElementById("lilac-hint-modal")) return; // Already exists
+                        
+                        var modalHTML = `
+                            <div id="lilac-hint-modal" style="display: none; position: fixed; z-index: 999999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+                                <div style="position: relative; margin: 10% auto; padding: 20px; width: 80%; max-width: 600px; background-color: #fff; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); direction: rtl;">
+                                    <span id="lilac-hint-close" style="position: absolute; top: 10px; left: 15px; font-size: 28px; font-weight: bold; cursor: pointer; color: #aaa;">&times;</span>
+                                    <div id="lilac-hint-content" style="margin-top: 20px; font-family: Arial, sans-serif; line-height: 1.6;">
+                                        <h3 style="color: #007cba; margin-bottom: 15px;">רמז</h3>
+                                        <div id="question-content" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;"></div>
+                                        <div id="answers-content" style="margin-bottom: 15px;"></div>
+                                        <p style="color: #666; font-style: italic;">נסה לחשוב על התשובה הנכונה. אם אתה מתקשה, פנה למורה לעזרה.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        document.body.insertAdjacentHTML("beforeend", modalHTML);
+                        
+                        // Add close functionality
+                        document.getElementById("lilac-hint-close").onclick = closeHintModal;
+                        document.getElementById("lilac-hint-modal").onclick = function(e) {
+                            if (e.target.id === "lilac-hint-modal") {
+                                closeHintModal();
+                            }
+                        };
+                        
+                        console.log("🚀 MODAL HINT: Enhanced modal structure created");
+                    }
+                    
+                    function extractQuestionContent(questionElement) {
+                        var content = {
+                            question: "",
+                            answers: [],
+                            correctAnswer: ""
+                        };
+                        
+                        // Extract question text
+                        var questionText = questionElement.querySelector(".wpProQuiz_question_text") || 
+                                         questionElement.querySelector(".wpProQuiz_question") ||
+                                         questionElement.querySelector("h5, h4, h3");
+                        
+                        if (questionText) {
+                            content.question = questionText.textContent.trim();
+                        }
+                        
+                        // Extract answers
+                        var answerLabels = questionElement.querySelectorAll("label");
+                        answerLabels.forEach(function(label, index) {
+                            var input = label.querySelector("input[type=radio], input[type=checkbox]");
+                            if (input) {
+                                var answerText = label.textContent.trim();
+                                // Remove the status indicators text
+                                answerText = answerText.replace(/נכון|לא נכון|Correct answer/g, "").trim();
+                                
+                                var isCorrect = label.querySelector(".ld-quiz-question-item__status--correct") !== null;
+                                
+                                content.answers.push({
+                                    text: answerText,
+                                    isCorrect: isCorrect,
+                                    index: index + 1
+                                });
+                                
+                                if (isCorrect) {
+                                    content.correctAnswer = answerText;
+                                }
+                            }
+                        });
+                        
+                        return content;
+                    }
+                    
+                    function openHintModal(questionElement) {
+                        console.log("🚀 MODAL HINT: Opening enhanced modal");
+                        createHintModal();
+                        
+                        var content = extractQuestionContent(questionElement);
+                        
+                        // Populate question content
+                        var questionDiv = document.getElementById("question-content");
+                        if (content.question) {
+                            questionDiv.innerHTML = "<strong>השאלה:</strong><br>" + content.question;
+                        } else {
+                            questionDiv.innerHTML = "<strong>השאלה:</strong><br>תוכן השאלה לא נמצא";
+                        }
+                        
+                        // Populate answers
+                        var answersDiv = document.getElementById("answers-content");
+                        if (content.answers.length > 0) {
+                            var answersHTML = "<strong>אפשרויות:</strong><br>";
+                            content.answers.forEach(function(answer, index) {
+                                var correctIndicator = answer.isCorrect ? " ✓" : "";
+                                answersHTML += "<div style=\"margin: 5px 0; padding: 5px; background: " + 
+                                             (answer.isCorrect ? "#e8f5e8" : "#f5f5f5") + 
+                                             "; border-radius: 3px;\">" + 
+                                             (index + 1) + ". " + answer.text + correctIndicator + "</div>";
+                            });
+                            answersDiv.innerHTML = answersHTML;
+                        } else {
+                            answersDiv.innerHTML = "<strong>אפשרויות:</strong><br>לא נמצאו אפשרויות";
+                        }
+                        
+                        document.getElementById("lilac-hint-modal").style.display = "block";
+                    }
+                    
+                    function closeHintModal() {
+                        console.log("🚀 MODAL HINT: Closing modal");
+                        var modal = document.getElementById("lilac-hint-modal");
+                        if (modal) {
+                            modal.style.display = "none";
+                        }
+                    }
+                    
+                    function connectHintTriggers() {
+                        console.log("🚀 MODAL HINT: Connecting hint triggers...");
+                        
+                        // Connect to existing lilac-template-hint elements
+                        var hintTriggers = document.querySelectorAll(".lilac-template-hint");
+                        console.log("🚀 MODAL HINT: Found " + hintTriggers.length + " hint triggers");
+                        
+                        hintTriggers.forEach(function(trigger, index) {
+                            if (trigger.dataset.connected) return; // Already connected
+                            
+                            trigger.dataset.connected = "true";
+                            
+                            trigger.onclick = function(e) {
+                                e.preventDefault();
+                                console.log("🚀 MODAL HINT: Hint trigger clicked for question " + (index + 1));
+                                
+                                // Find the parent question element
+                                var questionElement = trigger.closest(".wpProQuiz_listItem") || 
+                                                    trigger.closest("[class*=question]") ||
+                                                    trigger.parentElement;
+                                
+                                if (questionElement) {
+                                    openHintModal(questionElement);
+                                } else {
+                                    console.log("🚀 MODAL HINT: Could not find question element");
+                                    // Fallback - open modal with generic content
+                                    createHintModal();
+                                    document.getElementById("question-content").innerHTML = "<strong>רמז כללי</strong>";
+                                    document.getElementById("answers-content").innerHTML = "נסה לחשוב על התשובה הנכונה";
+                                    document.getElementById("lilac-hint-modal").style.display = "block";
+                                }
+                            };
+                            
+                            console.log("🚀 MODAL HINT: Connected trigger " + (index + 1));
+                        });
+                    }
+                    
+                    // Initialize when jQuery is ready
+                    jQuery(document).ready(function($) {
+                        console.log("🚀 ENHANCED MODAL HINT: jQuery ready, initializing...");
+                        
+                        // Multiple connection attempts
+                        setTimeout(connectHintTriggers, 500);
+                        setTimeout(connectHintTriggers, 1500);
+                        setTimeout(connectHintTriggers, 3000);
+                        
+                        // Watch for DOM changes to connect new triggers
+                        if (window.MutationObserver) {
+                            var observer = new MutationObserver(function() {
+                                connectHintTriggers();
+                            });
+                            observer.observe(document.body, { childList: true, subtree: true });
+                        }
+                        
+                        console.log("🚀 ENHANCED MODAL HINT: Initialization complete");
+                    });
+                ');
+>>>>>>> 84725d43e7ba138d6533bcd8935436f0b59b85c4
                 /*
                 $script_handle = 'lilac-quiz-answer-reselection';
                 wp_register_script(
@@ -1084,32 +1289,117 @@ class Lilac_Quiz_Sidebar {
             return;
         }
         
-        // Output inline CSS to hide the debug panel
+        // Output comprehensive CSS to hide all debug panels
         echo '<style>
-            /* Hide LearnDash debug info panel */
+            /* Hide all debug panels - comprehensive approach */
             div[style*="background: #f5f5f5; padding: 15px; margin: 20px; border: 1px solid #ddd; font-family: monospace"],
-            div#quiz-debug-panel {
+            div#quiz-debug-panel,
+            .lilac-debug-info,
+            div[style*="background: rgba(0,0,0,0.8)"],
+            div[style*="background-color: rgba(0,0,0,0.8)"],
+            div[style*="background: #000"],
+            div[style*="background-color: #000"],
+            div[style*="position: fixed"][style*="bottom:"],
+            .debug-panel,
+            .quiz-debug,
+            [class*="debug"][style*="position: fixed"] {
                 display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                height: 0 !important;
+                overflow: hidden !important;
             }
         </style>';
         
-        // Output inline JavaScript to remove the debug panel from DOM
+        // Output comprehensive JavaScript to remove debug panels
         echo '<script>
+            console.log("🚀 DEBUG REMOVER: Starting comprehensive debug panel removal");
+            
+            function removeAllDebugPanels() {
+                // Multiple selectors to catch different debug panel types
+                var selectors = [
+                    "div[style*=\"background: #f5f5f5; padding: 15px; margin: 20px; border: 1px solid #ddd\"]",
+                    "div[style*=\"background: rgba(0,0,0,0.8)\"]",
+                    "div[style*=\"background-color: rgba(0,0,0,0.8)\"]", 
+                    "div[style*=\"background: #000\"]",
+                    "div[style*=\"background-color: #000\"]",
+                    "div[style*=\"position: fixed\"][style*=\"bottom:\"]",
+                    ".lilac-debug-info",
+                    ".debug-panel",
+                    ".quiz-debug",
+                    "[class*=\"debug\"][style*=\"position: fixed\"]"
+                ];
+                
+                var removedCount = 0;
+                
+                selectors.forEach(function(selector) {
+                    var panels = document.querySelectorAll(selector);
+                    panels.forEach(function(panel) {
+                        // Check if it contains debug-related content
+                        var text = panel.textContent || panel.innerText || "";
+                        if (text.toLowerCase().includes("debug") || 
+                            text.toLowerCase().includes("console") ||
+                            text.toLowerCase().includes("log") ||
+                            panel.style.position === "fixed") {
+                            
+                            panel.style.display = "none";
+                            panel.style.visibility = "hidden";
+                            panel.style.opacity = "0";
+                            panel.style.height = "0";
+                            panel.style.overflow = "hidden";
+                            
+                            if (panel.parentNode) {
+                                panel.parentNode.removeChild(panel);
+                                removedCount++;
+                            }
+                        }
+                    });
+                });
+                
+                console.log("🚀 DEBUG REMOVER: Removed " + removedCount + " debug panels");
+                return removedCount;
+            }
+            
+            // Remove on DOM ready
             document.addEventListener("DOMContentLoaded", function() {
-                // Remove any debug panels that match the style pattern
-                var debugPanels = document.querySelectorAll("div[style*=\"background: #f5f5f5; padding: 15px; margin: 20px; border: 1px solid #ddd\"]");
-                debugPanels.forEach(function(panel) {
-                    if (panel.textContent.indexOf("Debug Info") !== -1) {
-                        panel.parentNode.removeChild(panel);
+                console.log("🚀 DEBUG REMOVER: DOM ready, removing debug panels");
+                removeAllDebugPanels();
+            });
+            
+            // Remove after page load
+            window.addEventListener("load", function() {
+                console.log("🚀 DEBUG REMOVER: Page loaded, removing debug panels");
+                setTimeout(removeAllDebugPanels, 100);
+                setTimeout(removeAllDebugPanels, 500);
+                setTimeout(removeAllDebugPanels, 1000);
+            });
+            
+            // Watch for new debug panels being added
+            if (window.MutationObserver) {
+                var debugObserver = new MutationObserver(function(mutations) {
+                    var shouldCheck = false;
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+                            shouldCheck = true;
+                        }
+                    });
+                    
+                    if (shouldCheck) {
+                        setTimeout(removeAllDebugPanels, 50);
                     }
                 });
-            });
+                
+                debugObserver.observe(document.body, { 
+                    childList: true, 
+                    subtree: true 
+                });
+            }
         </script>';
     }
     
     /**
      * AJAX handler for checking if enforce hint is enabled for a quiz
-     */
+{{ ... }}
     public function check_quiz_enforce_hint() {
         $response = array(
             'success' => false,
