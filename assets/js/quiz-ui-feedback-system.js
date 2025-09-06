@@ -15,7 +15,64 @@
     window.quizUIFeedback = {
         initialized: false,
         currentQuestionId: null,
-        feedbackState: {}
+        feedbackState: {},
+        updateAnswerData: function(answerData) {
+            console.log('🔄 UI Feedback system received answer data update:', answerData);
+            // Store the answer data for validation
+            if (answerData && typeof answerData === 'object') {
+                window.lilacQuizCorrectAnswers = answerData;
+                console.log('✅ Correct answer data stored:', window.lilacQuizCorrectAnswers);
+            }
+        },
+        debugDataAvailability: function() {
+            console.log('🔍 Current data availability:', {
+                timestamp: new Date().toISOString(),
+                lilacQuizCorrectAnswers: {
+                    exists: typeof window.lilacQuizCorrectAnswers !== 'undefined',
+                    data: window.lilacQuizCorrectAnswers
+                },
+                quizAnalyzer: {
+                    exists: typeof window.quizAnalyzer !== 'undefined',
+                    hasQuestions: typeof window.quizAnalyzer !== 'undefined' && window.quizAnalyzer.questions,
+                    questions: typeof window.quizAnalyzer !== 'undefined' ? window.quizAnalyzer.questions : null
+                }
+            });
+        },
+        testValidation: function(questionId, selectedIndex) {
+            console.log('🧪 Manual validation test:', {
+                questionId: questionId,
+                selectedIndex: selectedIndex,
+                selectedType: typeof selectedIndex
+            });
+            
+            if (typeof window.lilacQuizCorrectAnswers !== 'undefined' && 
+                window.lilacQuizCorrectAnswers[questionId]) {
+                
+                const correctAnswer = window.lilacQuizCorrectAnswers[questionId];
+                console.log('🧪 Testing against lilacQuizCorrectAnswers:', {
+                    correctAnswer: correctAnswer,
+                    correctType: typeof correctAnswer,
+                    strictEqual: selectedIndex === correctAnswer,
+                    looseEqual: selectedIndex == correctAnswer,
+                    numberEqual: Number(selectedIndex) === Number(correctAnswer),
+                    stringEqual: String(selectedIndex) === String(correctAnswer)
+                });
+            }
+            
+            if (typeof window.quizAnalyzer !== 'undefined' && window.quizAnalyzer.questions) {
+                const question = window.quizAnalyzer.questions.find(q => q.id == questionId);
+                if (question && question.correctAnswer) {
+                    console.log('🧪 Testing against quizAnalyzer:', {
+                        correctAnswer: question.correctAnswer,
+                        correctType: typeof question.correctAnswer,
+                        strictEqual: selectedIndex === question.correctAnswer,
+                        looseEqual: selectedIndex == question.correctAnswer,
+                        numberEqual: Number(selectedIndex) === Number(question.correctAnswer),
+                        stringEqual: String(selectedIndex) === String(question.correctAnswer)
+                    });
+                }
+            }
+        }
     };
     
     /**
@@ -24,9 +81,17 @@
     function initUIFeedback() {
         console.log('🎯 Initializing Quiz UI Feedback System...');
         
+        // Debug initial data availability
+        window.quizUIFeedback.debugDataAvailability();
+        
         setupEventListeners();
         setupAnswerFeedback();
         fixHintButtonDuplication();
+        
+        // Set up periodic data availability monitoring
+        setInterval(function() {
+            window.quizUIFeedback.debugDataAvailability();
+        }, 5000); // Check every 5 seconds
         
         window.quizUIFeedback.initialized = true;
         console.log('✅ Quiz UI Feedback System initialized');
@@ -77,6 +142,11 @@
         const $question = $input.closest('.wpProQuiz_listItem');
         const questionId = getQuestionId($question);
         
+        console.log('📝 Answer selected for question:', questionId, 'Input:', $input.val());
+        
+        // Debug data availability at time of selection
+        window.quizUIFeedback.debugDataAvailability();
+        
         // Clear previous selection highlights
         $question.find('.wpProQuiz_questionListItem').removeClass('selected-answer');
         
@@ -86,7 +156,11 @@
         // Show visual feedback that answer was selected
         showAnswerSelectionFeedback($input);
         
-        console.log('📝 Answer selected for question:', questionId);
+        // Trigger validation after a short delay to allow LearnDash to process
+        setTimeout(function() {
+            console.log('🔄 Triggering delayed validation for question:', questionId);
+            detectAndEnhanceFeedback($question);
+        }, 500);
     }
     
     /**
@@ -152,21 +226,153 @@
     }
     
     /**
-     * Detect LearnDash feedback and enhance it
+     * Detect and validate answer using database correct answer data
      */
     function detectAndEnhanceFeedback($question) {
+        console.log('🚀 detectAndEnhanceFeedback called for question');
+        
+        // First try to validate using database correct answer data
+        const isCorrectByDatabase = validateAnswerAgainstDatabase($question);
+        console.log('📊 Database validation result:', isCorrectByDatabase);
+        
+        if (isCorrectByDatabase !== null) {
+            if (isCorrectByDatabase) {
+                console.log('✅ Showing correct feedback (database validation)');
+                showCorrectAnswerFeedback($question);
+            } else {
+                console.log('❌ Showing incorrect feedback (database validation)');
+                showIncorrectAnswerFeedback($question);
+            }
+            return;
+        }
+        
+        // Fallback to LearnDash DOM feedback if database validation fails
+        console.log('🔄 Falling back to DOM feedback detection');
         const $correct = $question.find('.wpProQuiz_correct:visible');
         const $incorrect = $question.find('.wpProQuiz_incorrect:visible');
         
+        console.log('🔍 DOM feedback elements:', {
+            correctElements: $correct.length,
+            incorrectElements: $incorrect.length
+        });
+        
         if ($correct.length > 0) {
+            console.log('✅ Showing correct feedback (DOM detection)');
             showCorrectAnswerFeedback($question);
         } else if ($incorrect.length > 0) {
+            console.log('❌ Showing incorrect feedback (DOM detection)');
             showIncorrectAnswerFeedback($question);
         } else {
+            console.log('⏳ No feedback elements found, retrying in 200ms');
             // Retry detection
             setTimeout(function() {
                 detectAndEnhanceFeedback($question);
             }, 200);
+        }
+    }
+    
+    /**
+     * Validate selected answer against database correct answer data
+     */
+    function validateAnswerAgainstDatabase($question) {
+        try {
+            // Get question ID
+            const questionId = getQuestionId($question);
+            console.log('🔍 Starting validation for question:', questionId);
+            
+            // Get selected answer
+            const $selectedInput = $question.find('.wpProQuiz_questionInput:checked');
+            if ($selectedInput.length === 0) {
+                console.log('❌ No answer selected');
+                return null; // No answer selected
+            }
+            
+            // Get selected answer index (1-based)
+            const $allInputs = $question.find('.wpProQuiz_questionInput');
+            const selectedIndex = $allInputs.index($selectedInput) + 1;
+            
+            // Debug selected input details
+            console.log('🔍 Selected input details:', {
+                selectedInputValue: $selectedInput.val(),
+                selectedInputName: $selectedInput.attr('name'),
+                selectedInputId: $selectedInput.attr('id'),
+                selectedIndex: selectedIndex,
+                totalInputs: $allInputs.length
+            });
+            
+            // Debug all inputs
+            const allInputsDebug = [];
+            $allInputs.each(function(index) {
+                allInputsDebug.push({
+                    index: index + 1,
+                    value: $(this).val(),
+                    name: $(this).attr('name'),
+                    id: $(this).attr('id'),
+                    checked: $(this).is(':checked')
+                });
+            });
+            console.log('🔍 All inputs:', allInputsDebug);
+            
+            // Check if we have correct answer data loaded
+            if (typeof window.lilacQuizCorrectAnswers !== 'undefined' && 
+                window.lilacQuizCorrectAnswers[questionId]) {
+                
+                const correctAnswer = window.lilacQuizCorrectAnswers[questionId];
+                // Use loose equality to handle type mismatches (string vs number)
+                const isCorrect = selectedIndex == correctAnswer;
+                
+                console.log('🎯 Database validation:', {
+                    questionId: questionId,
+                    selectedIndex: selectedIndex,
+                    correctAnswer: correctAnswer,
+                    isCorrect: isCorrect,
+                    dataType: typeof correctAnswer,
+                    selectedType: typeof selectedIndex,
+                    strictEqual: selectedIndex === correctAnswer,
+                    looseEqual: selectedIndex == correctAnswer
+                });
+                
+                return isCorrect;
+            }
+            
+            // Check if we have quiz analyzer data
+            if (typeof window.quizAnalyzer !== 'undefined' && 
+                window.quizAnalyzer.questions) {
+                
+                const question = window.quizAnalyzer.questions.find(q => q.id == questionId);
+                if (question && question.correctAnswer) {
+                    // Use loose equality to handle type mismatches (string vs number)
+                    const isCorrect = selectedIndex == question.correctAnswer;
+                    
+                    console.log('🎯 Analyzer validation:', {
+                        questionId: questionId,
+                        selectedIndex: selectedIndex,
+                        correctAnswer: question.correctAnswer,
+                        isCorrect: isCorrect,
+                        dataType: typeof question.correctAnswer,
+                        selectedType: typeof selectedIndex,
+                        strictEqual: selectedIndex === question.correctAnswer,
+                        looseEqual: selectedIndex == question.correctAnswer
+                    });
+                    
+                    return isCorrect;
+                }
+            }
+            
+            // Debug what data is actually available
+            console.log('⚠️ No database validation data available for question:', questionId);
+            console.log('🔍 Available data sources:', {
+                hasLilacQuizCorrectAnswers: typeof window.lilacQuizCorrectAnswers !== 'undefined',
+                lilacQuizCorrectAnswersKeys: typeof window.lilacQuizCorrectAnswers !== 'undefined' ? Object.keys(window.lilacQuizCorrectAnswers) : null,
+                hasQuizAnalyzer: typeof window.quizAnalyzer !== 'undefined',
+                hasQuizAnalyzerQuestions: typeof window.quizAnalyzer !== 'undefined' && window.quizAnalyzer.questions,
+                quizAnalyzerQuestionIds: typeof window.quizAnalyzer !== 'undefined' && window.quizAnalyzer.questions ? window.quizAnalyzer.questions.map(q => q.id) : null
+            });
+            return null; // No validation data available
+            
+        } catch (error) {
+            console.error('❌ Error in database validation:', error);
+            return null;
         }
     }
     
@@ -541,9 +747,52 @@
      * Get question ID from element
      */
     function getQuestionId($question) {
-        return $question.data('question-id') || 
-               $question.find('.wpProQuiz_questionList').data('question-id') || 
-               $question.index();
+        // Try multiple methods to get question ID
+        let questionId = null;
+        
+        // Method 1: Check data attributes
+        questionId = $question.data('question-id') || 
+                    $question.find('.wpProQuiz_questionList').data('question-id');
+        
+        if (questionId) {
+            return parseInt(questionId);
+        }
+        
+        // Method 2: Extract from form input names
+        const $inputs = $question.find('.wpProQuiz_questionInput');
+        if ($inputs.length > 0) {
+            const inputName = $inputs.first().attr('name');
+            if (inputName) {
+                const match = inputName.match(/question_(\d+)/);
+                if (match) {
+                    return parseInt(match[1]);
+                }
+            }
+        }
+        
+        // Method 3: Extract from question list class or ID
+        const classList = $question.attr('class') || '';
+        const idAttr = $question.attr('id') || '';
+        
+        let match = classList.match(/question[_-](\d+)/) || idAttr.match(/question[_-](\d+)/);
+        if (match) {
+            return parseInt(match[1]);
+        }
+        
+        // Method 4: Look for hidden input with question ID
+        const $hiddenInput = $question.find('input[name*="question"]').first();
+        if ($hiddenInput.length > 0) {
+            const hiddenName = $hiddenInput.attr('name');
+            match = hiddenName.match(/question[_\[\]]*(\d+)/);
+            if (match) {
+                return parseInt(match[1]);
+            }
+        }
+        
+        // Method 5: Use index as fallback
+        const index = $question.index();
+        console.log('⚠️ Using fallback index for question ID:', index);
+        return index;
     }
     
     // Initialize when DOM is ready

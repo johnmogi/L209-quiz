@@ -116,22 +116,33 @@
     }
     
     /**
-     * Trigger the native hint functionality
+     * Trigger hint functionality
      */
     function triggerHint() {
         console.log('🎯 LILAC HINT SIMPLE: Triggering hint...');
         
-        // Try to find and click native hint button
+        // Try to find and click native hint button first
         const nativeHintBtn = $('.wpProQuiz_TipButton, .wpProQuiz_tipButton, input[value*="רמז"], button[class*="hint"], .wpProQuiz_button[name="tip"]');
         console.log('🔍 LILAC HINT SIMPLE: Found native hint buttons:', nativeHintBtn.length);
         
         if (nativeHintBtn.length > 0) {
             console.log('✅ LILAC HINT SIMPLE: Clicking native hint button');
             nativeHintBtn.first().trigger('click');
-            state.hintViewed = true;
-            showHintViewedToast();
+            
+            // Wait a moment to see if native hint appears
+            setTimeout(() => {
+                const $nativeHintContent = $('.wpProQuiz_tipp:visible, .wpProQuiz_response:visible');
+                if ($nativeHintContent.length > 0) {
+                    console.log('✅ LILAC HINT SIMPLE: Native hint content appeared');
+                    state.hintViewed = true;
+                    showHintViewedToast();
+                } else {
+                    console.log('💡 LILAC HINT SIMPLE: Native hint button clicked but no content, showing custom hint');
+                    showCustomHint();
+                }
+            }, 500);
         } else {
-            // Always show custom hint - no alerts
+            // Always show custom hint when no native button exists
             console.log('💡 LILAC HINT SIMPLE: No native hint found, showing custom hint');
             showCustomHint();
         }

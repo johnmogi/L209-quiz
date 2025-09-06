@@ -438,13 +438,13 @@
         },
 
         generateDetailedAnalysis: function() {
-            let analysisHtml = '<h4 style="margin: 0 0 10px 0; color: #333;">🎯 Live Quiz Analysis</h4>';
+            // Always load clean data from database instead of using DOM extraction
+            this.loadQuestionsFromDatabase();
             
-            if (this.questions.length === 0) {
-                // Load questions directly from database like PHP demo
-                this.loadQuestionsFromDatabase();
-                analysisHtml += '<p style="color: #666;">Loading questions from database...</p>';
-            } else {
+            let analysisHtml = '<h4 style="margin: 0 0 10px 0; color: #333;">🎯 Live Quiz Analysis</h4>';
+            analysisHtml += '<p style="color: #666;">Loading clean data from database...</p>';
+            
+            if (this.questions.length > 0) {
                 analysisHtml += '<div style="display: grid; gap: 15px; max-height: 400px; overflow-y: auto;">';
                 
                 this.questions.forEach((question, index) => {
@@ -549,6 +549,7 @@
                 dataType: 'json',
                 success: function(data) {
                     if (data && data.questions) {
+                        // Replace DOM-extracted questions with clean database data
                         self.questions = data.questions.map((q, index) => ({
                             id: q.question_id,
                             text: q.question_text,
@@ -566,13 +567,79 @@
                         });
                         
                         self.updateAnalyzer();
-                        self.generateDetailedAnalysis();
+                        self.renderDatabaseAnalysis();
                     }
                 },
                 error: function() {
                     console.error('LILAC: Failed to load questions from database');
                 }
             });
+        },
+
+        renderDatabaseAnalysis: function() {
+            let analysisHtml = '<h4 style="margin: 0 0 10px 0; color: #333;">🎯 Live Quiz Analysis (Database)</h4>';
+            
+            if (this.questions.length > 0) {
+                analysisHtml += '<div style="display: grid; gap: 15px; max-height: 400px; overflow-y: auto;">';
+                
+                this.questions.forEach((question, index) => {
+                    const hasCorrectAnswer = question.correctAnswer !== null;
+                    const statusColor = hasCorrectAnswer ? '#4CAF50' : '#f44336';
+                    const statusIcon = hasCorrectAnswer ? '✅' : '❌';
+                    const correctAnswerText = hasCorrectAnswer ? `1 Correct Answer` : 'No Answer';
+                    
+                    analysisHtml += `
+                        <div style="
+                            background: #ffffff;
+                            padding: 15px;
+                            border-radius: 8px;
+                            border-left: 4px solid ${statusColor};
+                            margin-bottom: 10px;
+                            border: 1px solid #e0e0e0;
+                        ">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <strong style="color: #2196F3;">Question ${index + 1} of ${this.questions.length} (ID: ${question.id}) - </strong>
+                                <span style="color: ${statusColor};">${statusIcon} ${correctAnswerText}</span>
+                            </div>
+                            <div style="font-size: 14px; margin: 10px 0; line-height: 1.4; color: #333;">
+                                ${question.text || 'Question text not available'}
+                            </div>
+                            ${this.generateAnswerOptions(question)}
+                        </div>
+                    `;
+                });
+                
+                analysisHtml += '</div>';
+            } else {
+                analysisHtml += '<p style="color: #666;">No questions found in database.</p>';
+            }
+
+            // Performance summary
+            const correctCount = this.questions.filter(q => q.correctAnswer !== null).length;
+            const totalAnswers = this.questions.reduce((sum, q) => sum + q.answers.length, 0);
+            
+            analysisHtml += `
+                <div style="
+                    margin-top: 15px;
+                    padding: 15px;
+                    background: #ffffff;
+                    border-radius: 8px;
+                    border: 1px solid #e0e0e0;
+                ">
+                    <h4 style="margin: 0 0 10px 0; color: #333;">Performance Summary</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 13px; color: #333;">
+                        <div><strong>Questions Processed:</strong> ${this.questions.length}</div>
+                        <div><strong>Total Answers:</strong> ${totalAnswers}</div>
+                        <div><strong>Correct Answers:</strong> ${correctCount}</div>
+                        <div><strong>Data Source:</strong> Clean Database</div>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                        <strong>Generated:</strong> ${new Date().toLocaleTimeString()} | <strong>System Ready:</strong> ${correctCount > 0 ? 'Yes' : 'No'}
+                    </div>
+                </div>
+            `;
+
+            $('#questions-analysis').html(analysisHtml);
         },
 
         handleAnswerSelection: function($input) {

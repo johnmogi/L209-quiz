@@ -41,12 +41,26 @@
      * Check if enforce hint is enabled and update body class
      */
     function checkEnforceHint() {
+        // Check if we're on a quiz page with questions
+        const $quizQuestions = $('.wpProQuiz_questionListItem, .wpProQuiz_listItem');
+        const isQuizPage = $quizQuestions.length > 0;
+        
         // Check if enforce hint is enabled in the quiz settings
         const $hintButton = $('.wpProQuiz_TipButton');
-        const hasEnforceHint = $hintButton.length > 0;
+        const hasNativeHintButton = $hintButton.length > 0;
+        
+        // Enable hint enforcement if we're on a quiz page (regardless of native hint buttons)
+        const hasEnforceHint = isQuizPage;
         
         // Toggle the enforce-hint class on body
         $('body').toggleClass('enforce-hint', hasEnforceHint);
+        
+        console.log('🔍 Hint enforcement check:', {
+            isQuizPage: isQuizPage,
+            hasNativeHintButton: hasNativeHintButton,
+            hasEnforceHint: hasEnforceHint,
+            bodyClasses: $('body').attr('class')
+        });
         
         return hasEnforceHint;
     }

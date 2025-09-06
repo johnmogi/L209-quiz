@@ -288,9 +288,18 @@ class Lilac_Quiz_Sidebar {
                 true
             );
             
+            // REBUILT: Load new functional debug and feedback systems
             wp_enqueue_script(
-                'lilac-quiz-ui-feedback',
-                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-ui-feedback-system.js',
+                'lilac-quiz-debug-rebuilt',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-debug-rebuilt.js',
+                array('jquery'),
+                LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(), // Cache busting
+                true
+            );
+            
+            wp_enqueue_script(
+                'lilac-quiz-ui-feedback-rebuilt',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-ui-feedback-rebuilt.js',
                 array('jquery'),
                 LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(), // Cache busting
                 true
