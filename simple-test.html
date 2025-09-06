@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Hint Test</title>
+</head>
+<body>
+    <h1>Simple Hint Test</h1>
+    
+    <div class="wpProQuiz_listItem">
+        <div class="wpProQuiz_question_text">Test Question: What is 2+2?</div>
+        <div class="wpProQuiz_questionListItem">
+            <input type="button" value="Check" class="wpProQuiz_button">
+        </div>
+    </div>
+
+    <script>
+        console.log('🔥 SIMPLE TEST: Starting...');
+        
+        function addSimpleHint() {
+            console.log('🔥 SIMPLE TEST: Adding hint button...');
+            
+            const question = document.querySelector('.wpProQuiz_listItem');
+            const buttonContainer = question.querySelector('.wpProQuiz_questionListItem');
+            
+            if (!buttonContainer) {
+                console.error('🔥 SIMPLE TEST: No button container found');
+                return;
+            }
+            
+            const hintBtn = document.createElement('input');
+            hintBtn.type = 'button';
+            hintBtn.value = 'רמז';
+            hintBtn.style.cssText = 'background: blue; color: white; padding: 10px; margin-right: 10px;';
+            
+            hintBtn.onclick = function() {
+                alert('Hint clicked!');
+            };
+            
+            buttonContainer.insertBefore(hintBtn, buttonContainer.firstChild);
+            console.log('🔥 SIMPLE TEST: Hint button added successfully');
+        }
+        
+        // Add hint immediately
+        addSimpleHint();
+        
+        // Also try after delay
+        setTimeout(addSimpleHint, 1000);
+    </script>
+</body>
+</html>

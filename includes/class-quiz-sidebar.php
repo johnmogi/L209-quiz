@@ -281,6 +281,14 @@ class Lilac_Quiz_Sidebar {
             );
             
             wp_enqueue_script(
+                'lilac-quiz-live-integration',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-live-integration.js',
+                array('jquery', 'lilac-quiz-detector-enhanced'),
+                LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(), // Cache busting
+                true
+            );
+            
+            wp_enqueue_script(
                 'lilac-quiz-ui-feedback',
                 LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-ui-feedback-system.js',
                 array('jquery'),
