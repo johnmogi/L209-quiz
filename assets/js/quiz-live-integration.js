@@ -84,9 +84,9 @@
     function loadAllQuizData() {
         console.log('📥 Loading all quiz data...');
         
-        // Use the existing AJAX endpoint or create a new one
+        // Use the quiz data loader endpoint
         $.ajax({
-            url: '/quiz-data-loader.php',
+            url: window.location.origin + '/quiz-data-loader.php',
             method: 'GET',
             dataType: 'json',
             data: {
