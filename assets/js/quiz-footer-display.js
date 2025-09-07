@@ -17,9 +17,29 @@
                 // Small delay to ensure all scripts are loaded
                 setTimeout(() => {
                     // First try to use embedded data
+                    let embeddedData = null;
+                    
+                    // Check multiple possible sources for embedded data
                     if (window.embeddedQuizData && window.embeddedQuizData.success) {
-                        console.log('🎯 Quiz Footer: Using embedded quiz data');
-                        this.displayFooter(window.embeddedQuizData);
+                        embeddedData = window.embeddedQuizData;
+                    } else if (window.lilacQuizData && window.lilacQuizData.success) {
+                        embeddedData = window.lilacQuizData;
+                    } else {
+                        // Try to get from embedded script element
+                        const dataElement = document.getElementById('lilac-quiz-data');
+                        if (dataElement) {
+                            try {
+                                embeddedData = JSON.parse(dataElement.textContent);
+                                console.log('🎯 Quiz Footer: Found embedded data in DOM element');
+                            } catch(e) {
+                                console.log('🎯 Quiz Footer: Error parsing embedded data:', e);
+                            }
+                        }
+                    }
+                    
+                    if (embeddedData && embeddedData.success) {
+                        console.log('🎯 Quiz Footer: Using embedded quiz data:', embeddedData);
+                        this.displayFooter(embeddedData);
                         return;
                     }
                     
