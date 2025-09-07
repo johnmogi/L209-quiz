@@ -327,10 +327,10 @@ class Lilac_Quiz_Sidebar {
             //     true
             // );
             
-            // Quiz Answer Display Fix - fixes "Correct answer" showing for all options
+            // UNIFIED Quiz System - replaces all previous quiz calculation files
             wp_enqueue_script(
-                'lilac-quiz-answer-fix',
-                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-answer-fix.js',
+                'lilac-quiz-unified-system',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-unified-system.js',
                 array('jquery'),
                 LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(),
                 true
@@ -423,14 +423,14 @@ class Lilac_Quiz_Sidebar {
                 // Debug info removed for production
             }
             
-            // Enable integrated quiz analyzer
-            wp_enqueue_script(
-                'lilac-quiz-integrated-analyzer',
-                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-integrated-analyzer.js',
-                array('jquery'),
-                LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(),
-                true
-            );
+            // DISABLED: Replaced by unified system
+            // wp_enqueue_script(
+            //     'lilac-quiz-integrated-analyzer',
+            //     LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-integrated-analyzer.js',
+            //     array('jquery'),
+            //     LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(),
+            //     true
+            // );
             
             
             // Enqueue feedback system CSS
