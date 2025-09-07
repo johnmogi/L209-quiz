@@ -716,14 +716,11 @@
     `;
     document.head.appendChild(style);
 
-            // Initialize when DOM is ready
+            // KEEP ONLY ANALYZER - Remove answer indicators functionality
     $(document).ready(function() {
-        // Debug: Log what elements we can find
-        
-        // Always initialize - let the analyzer handle detection
+        // Only initialize the Live Quiz Analyzer (footer)
         window.LilacQuizAnalyzer.init();
         
-        // Also try after LearnDash loads
         setTimeout(function() {
             window.LilacQuizAnalyzer.detectQuizData();
             window.LilacQuizAnalyzer.updateAnalyzer();

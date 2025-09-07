@@ -1,127 +1,103 @@
 /**
- * Quiz Answer Display Fix
- * Fixes the issue where all answers show "Correct answer" instead of only the actually correct one
+ * CONSOLIDATED Quiz System - Single File Solution
+ * Consolidates: quiz-answer-fix.js + quiz-comprehensive-system.js + quiz-integrated-analyzer.js
+ * ONLY removes false positives - does NOT add correct answer indicators
  */
 
 (function($) {
     'use strict';
     
-    console.log('🔧 Quiz Answer Fix: Script loaded');
+    console.log('🔧 CONSOLIDATED Quiz System: Starting...');
     
-    $(document).ready(function() {
-        console.log('🔧 Quiz Answer Fix: Initializing...');
+    // Global state
+    window.LilacQuizSystem = {
+        initialized: false,
         
-        // Run fix immediately and repeatedly to catch dynamic content
-        fixQuizAnswerDisplay();
-        
-        // Run fix multiple times with different delays to catch all quiz loading scenarios
-        setTimeout(fixQuizAnswerDisplay, 500);
-        setTimeout(fixQuizAnswerDisplay, 1000);
-        setTimeout(fixQuizAnswerDisplay, 2000);
-        setTimeout(fixQuizAnswerDisplay, 3000);
-        
-        // Watch for DOM changes and reapply fix
-        const observer = new MutationObserver(function(mutations) {
-            let shouldFix = false;
-            mutations.forEach(function(mutation) {
-                if (mutation.type === 'childList') {
-                    mutation.addedNodes.forEach(function(node) {
-                        if (node.nodeType === 1) { // Element node
-                            if ($(node).hasClass('wpProQuiz_content') || 
-                                $(node).find('.wpProQuiz_content').length > 0 ||
-                                $(node).hasClass('wpProQuiz_questionList') ||
-                                $(node).find('.wpProQuiz_questionList').length > 0) {
-                                shouldFix = true;
-                            }
-                        }
-                    });
-                }
-            });
+        init: function() {
+            console.log('🔧 Consolidated System: Initializing...');
             
-            if (shouldFix) {
-                setTimeout(fixQuizAnswerDisplay, 100);
-            }
-        });
-        
-        // Start observing
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-    });
-    
-    function fixQuizAnswerDisplay() {
-        console.log('🔧 Quiz Answer Fix: Running fix...');
-        
-        // First, hide ALL "Correct answer" labels to prevent the issue
-        $('.ld-quiz-question-item__status--missed').each(function() {
-            const $this = $(this);
-            if ($this.text().includes('Correct answer') || $this.text().includes('תשובה נכונה')) {
-                $this.hide();
-                console.log('🔧 Quiz Answer Fix: Hidden incorrect label');
-            }
-        });
-        
-        // Try to get quiz data and mark correct answers properly
-        if (typeof window.lilacQuizData !== 'undefined' && window.lilacQuizData.questions) {
-            console.log('🔧 Quiz Answer Fix: Found quiz data with', window.lilacQuizData.questions.length, 'questions');
+            this.setupAnswerFix();
+            this.setupMutationObserver();
             
-            // Process each question
-            $('.wpProQuiz_questionList').each(function(questionIndex) {
-                const $question = $(this);
-                const questionData = window.lilacQuizData.questions[questionIndex];
-                
-                if (!questionData) return;
-                
-                console.log('🔧 Quiz Answer Fix: Processing question', questionIndex + 1, 'ID:', questionData.id);
-                
-                // Find the correct answer and show only that one
-                if (questionData.answers && Array.isArray(questionData.answers)) {
-                    questionData.answers.forEach(function(answer, answerIndex) {
-                        if (answer.is_correct) {
-                            const $answerItem = $question.find('.wpProQuiz_questionListItem').eq(answerIndex);
-                            let $statusEl = $answerItem.find('.ld-quiz-question-item__status--missed');
-                            
-                            // If no status element exists, create one
-                            if ($statusEl.length === 0) {
-                                $statusEl = $('<span class="ld-quiz-question-item__status--missed"></span>');
-                                $answerItem.append($statusEl);
-                            }
-                            
-                            $statusEl.show().text('✓ תשובה נכונה').css({
-                                'color': '#4CAF50',
-                                'font-weight': 'bold',
-                                'background': '#E8F5E8',
-                                'padding': '2px 6px',
-                                'border-radius': '3px',
-                                'margin-left': '10px',
-                                'display': 'inline-block'
-                            });
-                            
-                            $answerItem.addClass('quiz-correct-answer');
-                            
-                            console.log('🔧 Quiz Answer Fix: Marked answer', answerIndex + 1, 'as correct for question', questionData.id);
-                        }
-                    });
-                }
-            });
-        } else {
-            console.log('🔧 Quiz Answer Fix: No quiz data available - applying basic cleanup only');
-        }
+            this.initialized = true;
+            console.log('🔧 Consolidated System: Ready');
+        },
         
-        // Additional cleanup - remove any remaining incorrect labels
-        setTimeout(function() {
+        // CORE FUNCTION: Remove ALL false positive "Correct answer" indicators
+        removeAllFalsePositives: function() {
+            console.log('🔧 Consolidated System: Removing false positives...');
+            
+            // Hide ALL "Correct answer" labels completely
             $('.ld-quiz-question-item__status--missed').each(function() {
                 const $this = $(this);
-                const text = $this.text().trim();
-                if (text === 'Correct answer' || text === 'תשובה נכונה') {
-                    // Only hide if it's not our marked correct answer
-                    if (!$this.parent().hasClass('quiz-correct-answer')) {
-                        $this.hide();
-                    }
+                if ($this.text().includes('Correct answer') || $this.text().includes('תשובה נכונה')) {
+                    $this.hide();
                 }
             });
-        }, 100);
-    }
+            
+            // Additional cleanup for any other elements showing "Correct answer"
+            $('*').filter(function() {
+                return $(this).text().includes('Correct answer');
+            }).hide();
+        },
+        
+        // Setup answer fix with repeated cleanup
+        setupAnswerFix: function() {
+            // Run cleanup immediately and repeatedly
+            this.removeAllFalsePositives();
+            
+            setTimeout(() => this.removeAllFalsePositives(), 100);
+            setTimeout(() => this.removeAllFalsePositives(), 500);
+            setTimeout(() => this.removeAllFalsePositives(), 1000);
+            setTimeout(() => this.removeAllFalsePositives(), 2000);
+            setTimeout(() => this.removeAllFalsePositives(), 3000);
+        },
+        
+        // Setup mutation observer for dynamic content
+        setupMutationObserver: function() {
+            const self = this;
+            
+            const observer = new MutationObserver(function(mutations) {
+                let shouldCleanup = false;
+                
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList') {
+                        mutation.addedNodes.forEach(function(node) {
+                            if (node.nodeType === 1) {
+                                if ($(node).hasClass('wpProQuiz_content') || 
+                                    $(node).find('.wpProQuiz_content').length > 0 ||
+                                    $(node).hasClass('wpProQuiz_questionList') ||
+                                    $(node).find('.wpProQuiz_questionList').length > 0) {
+                                    shouldCleanup = true;
+                                }
+                            }
+                        });
+                    }
+                });
+                
+                if (shouldCleanup) {
+                    setTimeout(() => {
+                        self.removeAllFalsePositives();
+                    }, 100);
+                }
+            });
+            
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        }
+    };
+    
+    // Initialize when DOM is ready
+    $(document).ready(function() {
+        console.log('🔧 CONSOLIDATED Quiz System: DOM Ready');
+        window.LilacQuizSystem.init();
+        
+        // Additional cleanup after page loads
+        setTimeout(function() {
+            window.LilacQuizSystem.removeAllFalsePositives();
+        }, 2000);
+    });
     
 })(jQuery);
