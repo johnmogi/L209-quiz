@@ -280,14 +280,16 @@ class Lilac_Quiz_Sidebar {
                 true
             );
             
-            // Restore Live Quiz Analyzer debugger
-            wp_enqueue_script(
-                'lilac-quiz-integrated-analyzer',
-                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-integrated-analyzer.js',
-                array('jquery'),
-                LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(),
-                true
-            );
+            // Restore Live Quiz Analyzer debugger - ADMIN ONLY
+            if (current_user_can('manage_options')) {
+                wp_enqueue_script(
+                    'lilac-quiz-integrated-analyzer',
+                    LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-integrated-analyzer.js',
+                    array('jquery'),
+                    LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(),
+                    true
+                );
+            }
             
             // Add debug styles
             if (defined('WP_DEBUG') && WP_DEBUG) {

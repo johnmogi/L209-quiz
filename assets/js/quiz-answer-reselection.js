@@ -405,16 +405,16 @@ if (typeof jQuery === 'undefined') {
                 'display': 'none'
             });
             
-            // Transform hint box to error message
-            const $hintMessage = $('<div class="lilac-hint-box" style="background-color: rgb(255, 243, 224); border: 1px solid rgb(255, 152, 0); border-radius: 4px; padding: 10px 15px; margin: 15px 0px; text-align: right; font-size: 16px; display: flex; align-items: center; justify-content: space-between; direction: rtl;">' +
-                '<span style="font-weight:bold;color:#e74c3c;">❌ תשובה שגויה!</span>' +
-                '<span>לחץ על רמז לקבלת עזרה</span>' +
-                '<button type="button" class="lilac-force-hint" style="display: inline-block; visibility: visible; background-color: rgb(255, 152, 0); color: white; font-weight: bold; border: 2px solid rgb(230, 126, 34); border-radius: 4px; padding: 8px 24px; cursor: pointer; font-size: 16px; margin-right: 10px; box-shadow: rgba(0, 0, 0, 0.2) 0px 3px 5px;">רמז</button>' +
+            // Create hint request box - entire box is clickable
+            const $hintBox = $('<div class="lilac-hint-box" style="background-color: rgb(255, 243, 224); border: 1px solid rgb(255, 152, 0); border-radius: 4px; padding: 15px; margin: 15px 0px; text-align: center; font-size: 16px; direction: rtl; cursor: pointer; transition: background-color 0.2s ease;" data-hint-clickable="true">' +
+                '<div style="margin-bottom: 10px; font-weight: bold; color: #e65100;">רוצה רמז? לחץ כאן לקבלת עזרה</div>' +
+                '<button type="button" class="lilac-force-hint" style="display: inline-block; visibility: visible; background-color: rgb(255, 152, 0); color: white; font-weight: bold; border: 2px solid rgb(230, 81, 0); border-radius: 4px; padding: 8px 24px; cursor: pointer; font-size: 16px; box-shadow: rgba(0, 0, 0, 0.2) 0px 3px 5px; pointer-events: none;">רמז</button>' +
                 '</div>');
             
             // Insert above the native buttons
             const $firstBtn = $question.find('input.wpProQuiz_button').first();
             if ($firstBtn.length) {
+                $hintBox.insertBefore($firstBtn);
                 $hintMessage.insertBefore($firstBtn);
             } else {
                 $question.append($hintMessage);
@@ -506,14 +506,14 @@ if (typeof jQuery === 'undefined') {
             return false;
         });
 
-        // Handle hint button clicks - both native and our custom button
-        $(document).on('click', '.wpProQuiz_button[name="tip"], .wpProQuiz_TipButton, .lilac-force-hint, .lilac-request-hint', function(e) {
+        // Handle hint button clicks - both native and our custom button, plus clickable hint boxes
+        $(document).on('click', '.wpProQuiz_button[name="tip"], .wpProQuiz_TipButton, .lilac-force-hint, .lilac-request-hint, .lilac-hint-box[data-hint-clickable="true"]', function(e) {
             e.preventDefault();
             const $question = $(this).closest('.wpProQuiz_listItem');
             
-            // Check if clicking our custom hint button or initial request button
-            if ($(this).hasClass('lilac-force-hint') || $(this).hasClass('lilac-request-hint')) {
-                console.log('[LilacQuiz] Custom hint button clicked');
+            // Check if clicking our custom hint button, request button, or clickable hint box
+            if ($(this).hasClass('lilac-force-hint') || $(this).hasClass('lilac-request-hint') || $(this).hasClass('lilac-hint-box')) {
+                console.log('[LilacQuiz] Custom hint element clicked');
                 
                 // Show modal and unlock if locked
                 handleHintViewing($question);
