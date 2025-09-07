@@ -286,6 +286,22 @@ if (typeof jQuery === 'undefined') {
             // Remove any locks when answer is correct
             $question.removeClass('lilac-locked');
             
+            // Clear all previous wrong answer styling (red borders, etc.)
+            $question.find('.wpProQuiz_questionListItem').removeClass('lilac-wrong-answer').css({
+                'border': '',
+                'background-color': '',
+                'box-shadow': ''
+            });
+            
+            // Style the correct answer with green
+            const $correctAnswer = $question.find('.wpProQuiz_questionInput:checked').closest('.wpProQuiz_questionListItem');
+            $correctAnswer.addClass('lilac-correct-answer').css({
+                'border': '2px solid #4CAF50',
+                'background-color': '#e8f5e8',
+                'border-radius': '4px',
+                'box-shadow': '0 2px 4px rgba(76, 175, 80, 0.3)'
+            });
+            
             // Transform hint box to success message with Next button
             const $successMessage = $('<div class="lilac-hint-box" style="background-color: rgb(232, 245, 233); border: 1px solid rgb(76, 175, 80); border-radius: 4px; padding: 10px 15px; margin: 15px 0px; text-align: right; font-size: 16px; display: flex; align-items: center; justify-content: space-between; direction: rtl;">' +
                 '<span style="font-weight:bold;color:#4CAF50;">✓ תשובה נכונה!</span>' +
@@ -301,14 +317,13 @@ if (typeof jQuery === 'undefined') {
                 $question.append($successMessage);
             }
 
-            // Disable all inputs after correct answer
-            $question.find('.wpProQuiz_questionInput').prop('disabled', true)
-                .closest('.wpProQuiz_questionListItem')
-                .css({
-                    'pointer-events': 'none',
-                    'cursor': 'not-allowed',
-                    'opacity': '0.6'
-                });
+            // Disable all inputs after correct answer but keep the correct one visible
+            $question.find('.wpProQuiz_questionInput').prop('disabled', true);
+            $question.find('.wpProQuiz_questionListItem').not('.lilac-correct-answer').css({
+                'pointer-events': 'none',
+                'cursor': 'not-allowed',
+                'opacity': '0.6'
+            });
 
             // Show the Next button
             const $nextButton = $question.find('.wpProQuiz_button[name="next"]');
@@ -327,6 +342,15 @@ if (typeof jQuery === 'undefined') {
             
             // Apply lock
             $question.addClass('lilac-locked');
+            
+            // Style the wrong answer with red
+            const $wrongAnswer = $question.find('.wpProQuiz_questionInput:checked').closest('.wpProQuiz_questionListItem');
+            $wrongAnswer.addClass('lilac-wrong-answer').css({
+                'border': '2px solid #f44336',
+                'background-color': '#ffebee',
+                'border-radius': '4px',
+                'box-shadow': '0 2px 4px rgba(244, 67, 54, 0.3)'
+            });
             
             // Disable answer selection
             $question.find('.wpProQuiz_questionInput').prop('disabled', true);
@@ -386,13 +410,18 @@ if (typeof jQuery === 'undefined') {
         // Remove hint message
         $question.find('.lilac-hint-message').remove();
         
-        // Re-enable answer selection
-        $question.find('.wpProQuiz_questionInput').prop('disabled', false);
-        $question.find('.wpProQuiz_questionListItem').css({
+        // Clear all previous answer styling (both correct and wrong)
+        $question.find('.wpProQuiz_questionListItem').removeClass('lilac-wrong-answer lilac-correct-answer').css({
+            'border': '',
+            'background-color': '',
+            'box-shadow': '',
             'pointer-events': 'auto',
             'cursor': 'pointer',
             'opacity': '1'
         });
+        
+        // Re-enable answer selection
+        $question.find('.wpProQuiz_questionInput').prop('disabled', false);
         
         // Clear any previous selection to ensure fresh start
         $question.find('.wpProQuiz_questionInput').prop('checked', false);
@@ -452,10 +481,49 @@ if (typeof jQuery === 'undefined') {
             }
         });
 
-        // Handle answer selection (remove messages)
+        // Handle answer selection changes
         $(document).on('change', '.wpProQuiz_questionInput', function() {
             const $question = $(this).closest('.wpProQuiz_listItem');
+            const $selectedAnswer = $(this).closest('.wpProQuiz_questionListItem');
+            
+            // Remove any previous messages
             $question.find('.lilac-correct-answer-message').remove();
+            
+            // Clear all previous answer styling
+            $question.find('.wpProQuiz_questionListItem').removeClass('lilac-wrong-answer lilac-correct-answer').css({
+                'border': '',
+                'background-color': '',
+                'box-shadow': ''
+            });
+            
+            // If question is locked (user made wrong selection before), highlight new selection and hint
+            if ($question.hasClass('lilac-locked')) {
+                // Style the newly selected answer as potentially wrong (since question is locked)
+                $selectedAnswer.addClass('lilac-wrong-answer').css({
+                    'border': '2px solid #f44336',
+                    'background-color': '#ffebee',
+                    'border-radius': '4px',
+                    'box-shadow': '0 2px 4px rgba(244, 67, 54, 0.3)'
+                });
+                
+                // Gently draw attention to hint button
+                const $hintButton = $question.find('.lilac-force-hint, .wpProQuiz_button[name="tip"]');
+                if ($hintButton.length) {
+                    // Add gentle pulsing animation
+                    $hintButton.css({
+                        'animation': 'lilac-gentle-pulse 2s ease-in-out 3',
+                        'box-shadow': '0 0 10px rgba(255, 152, 0, 0.5)'
+                    });
+                    
+                    // Remove animation after 6 seconds
+                    setTimeout(function() {
+                        $hintButton.css({
+                            'animation': '',
+                            'box-shadow': '0 3px 5px rgba(0,0,0,0.2)'
+                        });
+                    }, 6000);
+                }
+            }
         });
 
         // Handle next button in success message
