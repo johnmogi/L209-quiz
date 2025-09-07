@@ -57,26 +57,47 @@
         },
 
         loadCorrectAnswers: function() {
-            // Load answers via AJAX from our PHP script
+            // Load answers via simple JSON endpoint
             const self = this;
             const quizId = this.extractQuizId();
             
             $.ajax({
-                url: '/get-quiz-answers.php?quiz_id=' + quizId,
+                url: '/simple-quiz-data.php?quiz_id=' + quizId,
                 type: 'GET',
-                dataType: 'text',
+                dataType: 'json',
                 success: function(data) {
-                    try {
-                        // Execute the JavaScript to load answers
-                        eval(data);
-                        self.correctAnswers = window.lilacQuizCorrectAnswers || {};
+                    console.log('LILAC: Loaded quiz data:', data);
+                    if (data.success && data.questions) {
+                        // Convert to simple format for display
+                        self.correctAnswers = {};
+                        self.questions = [];
+                        
+                        data.questions.forEach((q, index) => {
+                            if (q.correct_answer) {
+                                self.correctAnswers[q.question_id] = q.correct_answer;
+                            }
+                            
+                            // Store question data for display
+                            self.questions.push({
+                                id: q.question_id,
+                                text: q.question_text,
+                                answers: q.answers.map((a, idx) => ({
+                                    value: idx + 1,
+                                    text: a.text,
+                                    element: null
+                                })),
+                                correctAnswer: q.correct_answer,
+                                element: null
+                            });
+                        });
+                        
                         self.updateAnalyzer();
-                    } catch (e) {
-                        console.error('LILAC: Error loading answers:', e);
+                        self.displaySimpleAnswers();
                     }
                 },
-                error: function() {
-                    console.error('LILAC: Failed to load correct answers for quiz', quizId);
+                error: function(xhr, status, error) {
+                    console.error('LILAC: Failed to load quiz data:', error);
+                    $('#processing-status').html('Status: Error loading data');
                 }
             });
         },
@@ -630,6 +651,36 @@
             this.questions = [];
             this.detectQuizData();
             this.loadCorrectAnswers();
+        },
+
+        displaySimpleAnswers: function() {
+            // Add a simple answers display to the footer
+            $('.simple-answers-display').remove();
+            
+            if (this.questions.length === 0) return;
+            
+            let answersHtml = '<div class="simple-answers-display" style="margin-top: 15px; padding: 15px; background: #f0f8ff; border-radius: 5px; border-left: 4px solid #2196F3;">';
+            answersHtml += '<h4 style="margin: 0 0 10px 0; color: #2196F3;">🎯 Quick Answers Reference</h4>';
+            answersHtml += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; font-size: 13px;">';
+            
+            this.questions.forEach((question, index) => {
+                const correctLetter = question.correctAnswer ? ['A', 'B', 'C', 'D'][question.correctAnswer - 1] : '?';
+                const correctText = question.correctAnswer && question.answers[question.correctAnswer - 1] 
+                    ? question.answers[question.correctAnswer - 1].text.substring(0, 50) + '...'
+                    : 'No answer';
+                
+                answersHtml += `
+                    <div style="background: white; padding: 8px; border-radius: 3px; border: 1px solid #ddd;">
+                        <strong style="color: #333;">Q${index + 1} (ID: ${question.id}):</strong> 
+                        <span style="color: #4CAF50; font-weight: bold;">${correctLetter}</span>
+                        <div style="font-size: 11px; color: #666; margin-top: 2px;">${correctText}</div>
+                    </div>
+                `;
+            });
+            
+            answersHtml += '</div></div>';
+            
+            $('.lilac-footer-analyzer .container').append(answersHtml);
         }
     };
 
