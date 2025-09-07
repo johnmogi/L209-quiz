@@ -1,0 +1,188 @@
+/**
+ * Quiz Answer Display Fix
+ * Fixes the issue where all answers show "Correct answer" instead of only the actually correct one
+ */
+
+(function($) {
+    'use strict';
+    
+    console.log('🔧 Quiz Answer Fix: Script loaded');
+    
+    $(document).ready(function() {
+        console.log('🔧 Quiz Answer Fix: Initializing...');
+        
+        // Run fix with limited attempts to prevent endless loops
+        fixQuizAnswerDisplay();
+        
+        // Only run twice more with delays
+        setTimeout(fixQuizAnswerDisplay, 1000);
+        setTimeout(fixQuizAnswerDisplay, 3000);
+        
+        // Simple mutation observer with limits
+        let observerCount = 0;
+        const maxObserverRuns = 10;
+        
+        const observer = new MutationObserver(function(mutations) {
+            if (observerCount >= maxObserverRuns) {
+                observer.disconnect();
+                console.log('🔧 Observer: Stopped after', maxObserverRuns, 'runs');
+                return;
+            }
+            
+            let shouldFix = false;
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1) { // Element node
+                            if ($(node).hasClass('wpProQuiz_questionList')) {
+                                shouldFix = true;
+                            }
+                        }
+                    });
+                }
+            });
+            
+            if (shouldFix) {
+                observerCount++;
+                setTimeout(fixQuizAnswerDisplay, 100);
+            }
+        });
+        
+        // Start observing with automatic disconnect after 10 seconds
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+        
+        setTimeout(function() {
+            observer.disconnect();
+            console.log('🔧 Observer: Auto-disconnected after 10 seconds');
+        }, 10000);
+    });
+    
+    function fixQuizAnswerDisplay() {
+        console.log('🔧 Quiz Answer Fix: Running targeted fix...');
+        
+        // TARGETED: Only hide specific "Correct answer" labels in quiz areas
+        $('.wpProQuiz_content .ld-quiz-question-item__status--missed').each(function() {
+            const $this = $(this);
+            const text = $this.text().trim();
+            if ((text === 'Correct answer' || text === 'תשובה נכונה') && 
+                !$this.hasClass('lilac-forced-correct')) {
+                $this.hide();
+                console.log('🔧 TARGETED: Hidden incorrect label');
+            }
+        });
+        
+        // Try to get quiz data and mark correct answers properly
+        if (typeof window.lilacQuizData !== 'undefined' && window.lilacQuizData.questions) {
+            console.log('🔧 Quiz Answer Fix: Found quiz data with', window.lilacQuizData.questions.length, 'questions');
+            
+            // Process each question
+            $('.wpProQuiz_questionList').each(function(questionIndex) {
+                const $question = $(this);
+                const questionData = window.lilacQuizData.questions[questionIndex];
+                
+                if (!questionData) return;
+                
+                console.log('🔧 Quiz Answer Fix: Processing question', questionIndex + 1, 'ID:', questionData.id);
+                
+                // Find the correct answer and mark it
+                if (questionData.answers && Array.isArray(questionData.answers)) {
+                    questionData.answers.forEach(function(answer, answerIndex) {
+                        if (answer.is_correct) {
+                            const $answerItem = $question.find('.wpProQuiz_questionListItem').eq(answerIndex);
+                            
+                            // Only add if not already marked
+                            if (!$answerItem.hasClass('lilac-forced-correct')) {
+                                const $statusEl = $('<span class="lilac-forced-correct-indicator"></span>');
+                                $answerItem.append($statusEl);
+                                
+                                $statusEl.text('✓ CORRECT').css({
+                                    'color': '#4CAF50',
+                                    'font-weight': 'bold',
+                                    'background': '#E8F5E8',
+                                    'padding': '2px 6px',
+                                    'border-radius': '3px',
+                                    'margin-left': '10px',
+                                    'display': 'inline-block'
+                                });
+                                
+                                $answerItem.addClass('lilac-forced-correct');
+                                
+                                console.log('🔧 MARKED: Answer', answerIndex + 1, 'as correct for question', questionData.id);
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    }
+    
+    function forceDebugAnswerOverride() {
+        console.log('🔧 FORCE: Overriding with debug data...');
+        
+        // Check if we have debug data available
+        if (typeof window.lilacGetCorrectAnswer === 'function') {
+            $('.wpProQuiz_questionList').each(function(questionIndex) {
+                const $question = $(this);
+                
+                // Try to extract question ID from various sources
+                let questionId = null;
+                
+                // Method 1: From data attributes
+                questionId = $question.data('question-id') || $question.attr('data-question-id');
+                
+                // Method 2: From embedded quiz data
+                if (!questionId && window.lilacQuizData && window.lilacQuizData.questions[questionIndex]) {
+                    questionId = window.lilacQuizData.questions[questionIndex].id;
+                }
+                
+                // Method 3: From Live Quiz Analysis if available
+                if (!questionId) {
+                    const analysisText = $('.lilac-live-validation, .lilac-answer-feedback').text();
+                    const idMatch = analysisText.match(/ID:\s*(\d+)/);
+                    if (idMatch) {
+                        questionId = parseInt(idMatch[1]);
+                    }
+                }
+                
+                if (questionId) {
+                    const correctAnswer = window.lilacGetCorrectAnswer(questionId);
+                    if (correctAnswer) {
+                        console.log('🔧 FORCE: Question', questionId, 'correct answer is', correctAnswer);
+                        
+                        // FORCE: Remove all existing feedback
+                        $question.find('.ld-quiz-question-item__status--missed, .lilac-answer-feedback, .lilac-live-validation').remove();
+                        
+                        // FORCE: Add correct answer to the right option
+                        const $correctAnswerItem = $question.find('.wpProQuiz_questionListItem').eq(correctAnswer - 1);
+                        if ($correctAnswerItem.length) {
+                            const $forceEl = $('<div class="lilac-forced-correct-override"></div>');
+                            $forceEl.html('✓ CORRECT ANSWER').css({
+                                'color': '#4CAF50',
+                                'font-weight': 'bold',
+                                'background': '#E8F5E8',
+                                'padding': '5px 10px',
+                                'border-radius': '5px',
+                                'margin': '5px 0',
+                                'display': 'block',
+                                'position': 'relative',
+                                'z-index': '10000',
+                                'border': '2px solid #4CAF50'
+                            });
+                            
+                            $correctAnswerItem.append($forceEl);
+                            $correctAnswerItem.addClass('lilac-forced-correct');
+                            
+                            console.log('🔧 FORCED: Override applied to answer', correctAnswer);
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    // Removed aggressive cleanup to prevent blank screen and endless loops
+    
+})(jQuery);
