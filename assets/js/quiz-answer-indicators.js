@@ -161,7 +161,7 @@
             if ($correctAnswers.length > 0) {
                 // Correct answer found
                 indicatorClass = 'correct';
-                indicatorHtml = '<span class="icon">✓</span>כל הכבוד! תשובה נכונה';
+                indicatorHtml = '<span class="icon">✓</span>תשובה נכונה';
                 console.log('[Answer Indicators] Showing correct indicator for question');
             } else if ($incorrectAnswers.length > 0) {
                 // Incorrect answer found

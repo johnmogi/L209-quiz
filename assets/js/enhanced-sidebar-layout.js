@@ -498,7 +498,7 @@
         var $mediaContainer = $('#question-media');
         var $mediaContent = $mediaContainer.find('.media-content');
         
-        $mediaContent.html('<div class="completion-message"><h4>כל הכבוד!</h4><p>סיימת את המבחן בהצלחה</p></div>');
+        $mediaContent.html('<div class="completion-message"><h4>מבחן הושלם!</h4><p>סיימת את המבחן בהצלחה</p></div>');
         $mediaContainer.find('.media-placeholder, .media-error').hide();
         $mediaContent.show();
     }
