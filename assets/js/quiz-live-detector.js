@@ -283,8 +283,20 @@
         },
 
         showLiveValidation: function($container, questionId, selectedAnswer) {
-            const isCorrect = window.lilacIsAnswerCorrect ? window.lilacIsAnswerCorrect(questionId, selectedAnswer) : null;
-            const correctAnswer = window.lilacGetCorrectAnswer ? window.lilacGetCorrectAnswer(questionId) : null;
+            // Fix: Ensure proper integer conversion for comparison
+            const selectedAnswerInt = parseInt(selectedAnswer);
+            const questionIdInt = parseInt(questionId);
+            
+            // Debug logging to identify calculation issues
+            console.log('🔧 Live Detector Debug:', {
+                questionId: questionId,
+                questionIdInt: questionIdInt,
+                selectedAnswer: selectedAnswer,
+                selectedAnswerInt: selectedAnswerInt
+            });
+            
+            const isCorrect = window.lilacIsAnswerCorrect ? window.lilacIsAnswerCorrect(questionIdInt, selectedAnswerInt) : null;
+            const correctAnswer = window.lilacGetCorrectAnswer ? window.lilacGetCorrectAnswer(questionIdInt) : null;
 
             // Remove existing validation
             $container.find('.lilac-live-validation').remove();

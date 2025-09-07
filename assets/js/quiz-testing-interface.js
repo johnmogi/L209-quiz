@@ -220,8 +220,20 @@
         },
 
         provideFeedback: function($container, questionId, selectedAnswer) {
-            const isCorrect = window.lilacIsAnswerCorrect(questionId, selectedAnswer);
-            const correctAnswer = window.lilacGetCorrectAnswer(questionId);
+            // Fix: Ensure proper integer conversion for comparison
+            const selectedAnswerInt = parseInt(selectedAnswer);
+            const questionIdInt = parseInt(questionId);
+            
+            // Debug logging to identify calculation issues
+            console.log('🔧 Testing Interface Debug:', {
+                questionId: questionId,
+                questionIdInt: questionIdInt,
+                selectedAnswer: selectedAnswer,
+                selectedAnswerInt: selectedAnswerInt
+            });
+            
+            const isCorrect = window.lilacIsAnswerCorrect(questionIdInt, selectedAnswerInt);
+            const correctAnswer = window.lilacGetCorrectAnswer(questionIdInt);
 
             // Remove existing feedback
             $container.find('.lilac-feedback').remove();

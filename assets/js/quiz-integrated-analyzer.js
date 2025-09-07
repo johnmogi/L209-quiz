@@ -57,49 +57,96 @@
         },
 
         loadCorrectAnswers: function() {
-            // Load answers via simple JSON endpoint
+            // Use embedded quiz data instead of AJAX call
             const self = this;
-            const quizId = this.extractQuizId();
             
-            $.ajax({
-                url: '/simple-quiz-data.php?quiz_id=' + quizId,
-                type: 'GET',
-                dataType: 'json',
-                success: function(data) {
-                    console.log('LILAC: Loaded quiz data:', data);
-                    if (data.success && data.questions) {
-                        // Convert to simple format for display
-                        self.correctAnswers = {};
-                        self.questions = [];
-                        
-                        data.questions.forEach((q, index) => {
-                            if (q.correct_answer) {
-                                self.correctAnswers[q.question_id] = q.correct_answer;
+            // Check if embedded quiz data is available
+            if (typeof window.lilacQuizData !== 'undefined' && window.lilacQuizData.questions) {
+                console.log('LILAC: Using embedded quiz data:', window.lilacQuizData);
+                
+                // Convert embedded data to analyzer format
+                self.correctAnswers = {};
+                self.questions = [];
+                
+                window.lilacQuizData.questions.forEach((q, index) => {
+                    // Find the correct answer from the answers array
+                    let correctAnswerIndex = null;
+                    if (q.answers && Array.isArray(q.answers)) {
+                        q.answers.forEach((answer, idx) => {
+                            if (answer.is_correct) {
+                                correctAnswerIndex = idx + 1; // 1-based index
                             }
-                            
-                            // Store question data for display
-                            self.questions.push({
-                                id: q.question_id,
-                                text: q.question_text,
-                                answers: q.answers.map((a, idx) => ({
-                                    value: idx + 1,
-                                    text: a.text,
-                                    element: null
-                                })),
-                                correctAnswer: q.correct_answer,
-                                element: null
-                            });
                         });
-                        
-                        self.updateAnalyzer();
-                        self.displaySimpleAnswers();
                     }
-                },
-                error: function(xhr, status, error) {
-                    console.error('LILAC: Failed to load quiz data:', error);
-                    $('#processing-status').html('Status: Error loading data');
-                }
-            });
+                    
+                    if (correctAnswerIndex) {
+                        self.correctAnswers[q.id] = correctAnswerIndex;
+                    }
+                    
+                    // Store question data for display
+                    self.questions.push({
+                        id: q.id,
+                        text: q.question_text,
+                        answers: q.answers ? q.answers.map((a, idx) => ({
+                            value: idx + 1,
+                            text: a.answer_text,
+                            element: null
+                        })) : [],
+                        correctAnswer: correctAnswerIndex,
+                        element: null
+                    });
+                });
+                
+                console.log('LILAC: Processed questions:', self.questions);
+                console.log('LILAC: Correct answers:', self.correctAnswers);
+                
+                self.updateAnalyzer();
+                self.displaySimpleAnswers();
+                
+            } else {
+                // Fallback to AJAX if embedded data not available
+                const quizId = this.extractQuizId();
+                
+                $.ajax({
+                    url: '/simple-quiz-data.php?quiz_id=' + quizId,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log('LILAC: Loaded quiz data via AJAX:', data);
+                        if (data.success && data.questions) {
+                            // Convert to simple format for display
+                            self.correctAnswers = {};
+                            self.questions = [];
+                            
+                            data.questions.forEach((q, index) => {
+                                if (q.correct_answer) {
+                                    self.correctAnswers[q.question_id] = q.correct_answer;
+                                }
+                                
+                                // Store question data for display
+                                self.questions.push({
+                                    id: q.question_id,
+                                    text: q.question_text,
+                                    answers: q.answers.map((a, idx) => ({
+                                        value: idx + 1,
+                                        text: a.text,
+                                        element: null
+                                    })),
+                                    correctAnswer: q.correct_answer,
+                                    element: null
+                                });
+                            });
+                            
+                            self.updateAnalyzer();
+                            self.displaySimpleAnswers();
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('LILAC: Failed to load quiz data:', error);
+                        $('#processing-status').html('Status: Error loading data');
+                    }
+                });
+            }
         },
 
         detectQuizData: function() {
@@ -611,14 +658,27 @@
         showAnswerFeedback: function($container, question, selectedAnswer) {
             if (!question.correctAnswer) return;
 
-            const isCorrect = (selectedAnswer === question.correctAnswer);
+            // Fix: Ensure both values are integers for proper comparison
+            const selectedAnswerInt = parseInt(selectedAnswer);
+            const correctAnswerInt = parseInt(question.correctAnswer);
+            
+            // Debug logging to identify calculation issues
+            console.log('🔧 Answer Comparison Debug:', {
+                selectedAnswer: selectedAnswer,
+                selectedAnswerInt: selectedAnswerInt,
+                correctAnswer: question.correctAnswer,
+                correctAnswerInt: correctAnswerInt,
+                questionId: question.id
+            });
+            
+            const isCorrect = (selectedAnswerInt === correctAnswerInt);
             
             // Remove existing feedback
             $container.find('.lilac-answer-feedback').remove();
 
             const feedbackColor = isCorrect ? '#4CAF50' : '#f44336';
             const feedbackIcon = isCorrect ? '✅' : '❌';
-            const feedbackText = isCorrect ? 'Correct Answer!' : `Wrong! Correct answer: ${question.correctAnswer}`;
+            const feedbackText = isCorrect ? 'Correct Answer!' : `Wrong! Correct answer: ${correctAnswerInt}`;
 
             const feedback = $(`
                 <div class="lilac-answer-feedback" style="
