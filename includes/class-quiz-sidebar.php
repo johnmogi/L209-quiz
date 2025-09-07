@@ -269,8 +269,28 @@ class Lilac_Quiz_Sidebar {
                     LILAC_QUIZ_SIDEBAR_VERSION,
                     true
                 );
-                
-                // Add debug styles
+            }
+            
+            // Load answer indicators system
+            wp_enqueue_script(
+                'lilac-quiz-answer-indicators',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-answer-indicators.js',
+                array('jquery'),
+                LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(),
+                true
+            );
+            
+            // Restore Live Quiz Analyzer debugger
+            wp_enqueue_script(
+                'lilac-quiz-integrated-analyzer',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-integrated-analyzer.js',
+                array('jquery'),
+                LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(),
+                true
+            );
+            
+            // Add debug styles
+            if (defined('WP_DEBUG') && WP_DEBUG) {
                 wp_add_inline_style('dashicons', '
                     .lilac-debug-info {
                         position: fixed;
