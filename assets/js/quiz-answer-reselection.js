@@ -165,6 +165,53 @@ if (typeof jQuery === 'undefined') {
                             .learndash-wrapper .wpProQuiz_content .wpProQuiz_questionListItem.wpProQuiz_answerCorrectIncomplete label {
                                 border-color: inherit !important;
                             }
+                            
+                            /* Ultra-strong selectors to override LearnDash styles */
+                            .wpProQuiz_content .wpProQuiz_questionListItem.lilac-correct-answer,
+                            .learndash-wrapper .wpProQuiz_content .wpProQuiz_questionListItem.lilac-correct-answer,
+                            .wpProQuiz_questionListItem.lilac-correct-answer,
+                            div.wpProQuiz_questionListItem.lilac-correct-answer {
+                                border: 2px solid #4CAF50 !important;
+                                background-color: #e8f5e8 !important;
+                                border-radius: 4px !important;
+                                box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3) !important;
+                            }
+                            
+                            .wpProQuiz_content .wpProQuiz_questionListItem.lilac-wrong-answer,
+                            .learndash-wrapper .wpProQuiz_content .wpProQuiz_questionListItem.lilac-wrong-answer,
+                            .wpProQuiz_questionListItem.lilac-wrong-answer,
+                            div.wpProQuiz_questionListItem.lilac-wrong-answer {
+                                border: 2px solid #f44336 !important;
+                                background-color: #ffebee !important;
+                                border-radius: 4px !important;
+                                box-shadow: 0 2px 4px rgba(244, 67, 54, 0.3) !important;
+                            }
+                            
+                            /* Override any inline styles that might conflict */
+                            .wpProQuiz_questionListItem.lilac-correct-answer[style] {
+                                border: 2px solid #4CAF50 !important;
+                                background-color: #e8f5e8 !important;
+                                box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3) !important;
+                            }
+                            
+                            .wpProQuiz_questionListItem.lilac-wrong-answer[style] {
+                                border: 2px solid #f44336 !important;
+                                background-color: #ffebee !important;
+                                box-shadow: 0 2px 4px rgba(244, 67, 54, 0.3) !important;
+                            }
+                            
+                            /* Clear any LearnDash native styling when we apply our classes */
+                            .wpProQuiz_content .wpProQuiz_questionListItem.lilac-correct-answer label,
+                            .learndash-wrapper .wpProQuiz_content .wpProQuiz_questionListItem.lilac-correct-answer label {
+                                border: none !important;
+                                background: transparent !important;
+                            }
+                            
+                            .wpProQuiz_content .wpProQuiz_questionListItem.lilac-wrong-answer label,
+                            .learndash-wrapper .wpProQuiz_content .wpProQuiz_questionListItem.lilac-wrong-answer label {
+                                border: none !important;
+                                background: transparent !important;
+                            }
                         `)
                         .appendTo('head');
                 }
@@ -287,20 +334,13 @@ if (typeof jQuery === 'undefined') {
             $question.removeClass('lilac-locked');
             
             // Clear all previous wrong answer styling (red borders, etc.)
-            $question.find('.wpProQuiz_questionListItem').removeClass('lilac-wrong-answer').css({
-                'border': '',
-                'background-color': '',
-                'box-shadow': ''
-            });
+            $question.find('.wpProQuiz_questionListItem').removeClass('lilac-wrong-answer lilac-correct-answer').removeAttr('style');
             
-            // Style the correct answer with green
+            // Style the correct answer with green - force application
             const $correctAnswer = $question.find('.wpProQuiz_questionInput:checked').closest('.wpProQuiz_questionListItem');
-            $correctAnswer.addClass('lilac-correct-answer').css({
-                'border': '2px solid #4CAF50',
-                'background-color': '#e8f5e8',
-                'border-radius': '4px',
-                'box-shadow': '0 2px 4px rgba(76, 175, 80, 0.3)'
-            });
+            $correctAnswer.addClass('lilac-correct-answer').attr('data-lilac-styled', 'correct');
+            
+            console.log('[LilacQuiz] Applied green styling to correct answer:', $correctAnswer.length);
             
             // Transform hint box to success message with Next button
             const $successMessage = $('<div class="lilac-hint-box" style="background-color: rgb(232, 245, 233); border: 1px solid rgb(76, 175, 80); border-radius: 4px; padding: 10px 15px; margin: 15px 0px; text-align: right; font-size: 16px; display: flex; align-items: center; justify-content: space-between; direction: rtl;">' +
@@ -343,14 +383,9 @@ if (typeof jQuery === 'undefined') {
             // Apply lock
             $question.addClass('lilac-locked');
             
-            // Style the wrong answer with red
+            // Style the wrong answer with red - force application
             const $wrongAnswer = $question.find('.wpProQuiz_questionInput:checked').closest('.wpProQuiz_questionListItem');
-            $wrongAnswer.addClass('lilac-wrong-answer').css({
-                'border': '2px solid #f44336',
-                'background-color': '#ffebee',
-                'border-radius': '4px',
-                'box-shadow': '0 2px 4px rgba(244, 67, 54, 0.3)'
-            });
+            $wrongAnswer.addClass('lilac-wrong-answer').attr('data-lilac-styled', 'wrong');
             
             // Disable answer selection
             $question.find('.wpProQuiz_questionInput').prop('disabled', true);
@@ -410,15 +445,22 @@ if (typeof jQuery === 'undefined') {
         // Remove hint message
         $question.find('.lilac-hint-message').remove();
         
-        // Clear all previous answer styling (both correct and wrong)
-        $question.find('.wpProQuiz_questionListItem').removeClass('lilac-wrong-answer lilac-correct-answer').css({
-            'border': '',
-            'background-color': '',
-            'box-shadow': '',
-            'pointer-events': 'auto',
-            'cursor': 'pointer',
-            'opacity': '1'
+        // Clear all previous answer styling (both correct and wrong) - use jQuery to force removal
+        $question.find('.wpProQuiz_questionListItem').each(function() {
+            const $item = $(this);
+            $item.removeClass('lilac-wrong-answer lilac-correct-answer');
+            $item.removeAttr('style'); // Remove any inline styles
+            $item.css({
+                'border': 'none',
+                'background-color': 'transparent',
+                'box-shadow': 'none',
+                'pointer-events': 'auto',
+                'cursor': 'pointer',
+                'opacity': '1'
+            });
         });
+        
+        console.log('[LilacQuiz] Cleared all red/green styling after hint viewed');
         
         // Re-enable answer selection
         $question.find('.wpProQuiz_questionInput').prop('disabled', false);
@@ -489,22 +531,25 @@ if (typeof jQuery === 'undefined') {
             // Remove any previous messages
             $question.find('.lilac-correct-answer-message').remove();
             
-            // Clear all previous answer styling
-            $question.find('.wpProQuiz_questionListItem').removeClass('lilac-wrong-answer lilac-correct-answer').css({
-                'border': '',
-                'background-color': '',
-                'box-shadow': ''
+            // Clear ALL previous answer styling from ALL answers - force complete removal
+            $question.find('.wpProQuiz_questionListItem').each(function() {
+                const $item = $(this);
+                $item.removeClass('lilac-wrong-answer lilac-correct-answer');
+                $item.removeAttr('style'); // Remove any inline styles
+                $item.css({
+                    'border': 'none',
+                    'background-color': 'transparent',
+                    'box-shadow': 'none'
+                });
             });
             
-            // If question is locked (user made wrong selection before), highlight new selection and hint
+            console.log('[LilacQuiz] Cleared all previous styling, now applying to newly selected answer');
+            
+            // Always style the newly selected answer as red if question is locked
             if ($question.hasClass('lilac-locked')) {
-                // Style the newly selected answer as potentially wrong (since question is locked)
-                $selectedAnswer.addClass('lilac-wrong-answer').css({
-                    'border': '2px solid #f44336',
-                    'background-color': '#ffebee',
-                    'border-radius': '4px',
-                    'box-shadow': '0 2px 4px rgba(244, 67, 54, 0.3)'
-                });
+                // Style ONLY the newly selected answer as wrong - force application
+                $selectedAnswer.addClass('lilac-wrong-answer').attr('data-lilac-styled', 'wrong');
+                console.log('[LilacQuiz] Applied red styling to newly selected answer');
                 
                 // Gently draw attention to hint button
                 const $hintButton = $question.find('.lilac-force-hint, .wpProQuiz_button[name="tip"]');
