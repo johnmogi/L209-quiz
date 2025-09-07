@@ -531,40 +531,33 @@ if (typeof jQuery === 'undefined') {
             // Remove any previous messages
             $question.find('.lilac-correct-answer-message').remove();
             
-            // Clear ALL previous answer styling from ALL answers - force complete removal
-            $question.find('.wpProQuiz_questionListItem').each(function() {
-                const $item = $(this);
-                $item.removeClass('lilac-wrong-answer lilac-correct-answer');
-                $item.removeAttr('style'); // Remove any inline styles
-                $item.css({
-                    'border': 'none',
-                    'background-color': 'transparent',
-                    'box-shadow': 'none'
-                });
-            });
-            
-            console.log('[LilacQuiz] Cleared all previous styling, now applying to newly selected answer');
-            
-            // Always style the newly selected answer as red if question is locked
+            // For locked questions, add persistent tooltip instead of temporary colors
             if ($question.hasClass('lilac-locked')) {
-                // Style ONLY the newly selected answer as wrong - force application
-                $selectedAnswer.addClass('lilac-wrong-answer').attr('data-lilac-styled', 'wrong');
-                console.log('[LilacQuiz] Applied red styling to newly selected answer');
+                // Add persistent tooltip for wrong answer
+                if (!$selectedAnswer.hasClass('lilac-has-wrong-tooltip')) {
+                    $selectedAnswer.addClass('lilac-has-wrong-tooltip');
+                    
+                    // Create persistent tooltip that won't disappear after hint viewing
+                    const $tooltip = $('<div class="lilac-wrong-tooltip" style="position: absolute; top: -30px; right: 5px; background: #f44336; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; z-index: 1000; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">תשובה שגויה</div>');
+                    
+                    // Position tooltip
+                    $selectedAnswer.css('position', 'relative').append($tooltip);
+                    
+                    console.log('[LilacQuiz] Added persistent wrong answer tooltip');
+                }
                 
-                // Gently draw attention to hint button
+                // Gentle hint button animation
                 const $hintButton = $question.find('.lilac-force-hint, .wpProQuiz_button[name="tip"]');
                 if ($hintButton.length) {
-                    // Add gentle pulsing animation
                     $hintButton.css({
                         'animation': 'lilac-gentle-pulse 2s ease-in-out 3',
                         'box-shadow': '0 0 10px rgba(255, 152, 0, 0.5)'
                     });
                     
-                    // Remove animation after 6 seconds
-                    setTimeout(function() {
+                    setTimeout(() => {
                         $hintButton.css({
                             'animation': '',
-                            'box-shadow': '0 3px 5px rgba(0,0,0,0.2)'
+                            'box-shadow': ''
                         });
                     }, 6000);
                 }
@@ -588,7 +581,7 @@ if (typeof jQuery === 'undefined') {
         
         const checkInterval = setInterval(function() {
             checkCount++;
-            
+
             // First priority: Look for answer state classes
             const $selected = $question.find('.wpProQuiz_questionInput:checked');
             if ($selected.length) {
