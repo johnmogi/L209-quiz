@@ -545,15 +545,18 @@ if (typeof jQuery === 'undefined') {
             
             // For locked questions, add tooltip pointing to hint button
             if ($question.hasClass('lilac-locked')) {
+                console.log('[LilacQuiz] DEBUG: Question is locked, creating tooltip');
+                
                 // Remove any existing tooltips first
                 $question.find('.lilac-hint-tooltip').remove();
                 
                 // Find the hint button or hint box
                 const $hintTarget = $question.find('.lilac-hint-box, .lilac-force-hint, .wpProQuiz_button[name="tip"]').first();
+                console.log('[LilacQuiz] DEBUG: Found hint target:', $hintTarget.length, $hintTarget.get(0));
                 
                 if ($hintTarget.length) {
                     // Create tooltip pointing to hint
-                    const $tooltip = $('<div class="lilac-hint-tooltip" style="position: absolute; background: #f44336; color: white; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; z-index: 1000; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3); animation: lilac-tooltip-bounce 0.5s ease-out;">לחץ על הרמז! ⬇</div>');
+                    const $tooltip = $('<div class="lilac-hint-tooltip" style="position: absolute; background: #f44336 !important; color: white !important; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; z-index: 9999 !important; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3); animation: lilac-tooltip-bounce 0.5s ease-out;">לחץ על הרמז! ⬇</div>');
                     
                     // Position tooltip above the hint target
                     $hintTarget.css('position', 'relative');
@@ -567,16 +570,30 @@ if (typeof jQuery === 'undefined') {
                     $tooltip.append('<div style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #f44336;"></div>');
                     
                     $hintTarget.append($tooltip);
+                    console.log('[LilacQuiz] DEBUG: Tooltip appended to target');
+                    
+                    // Force visibility check
+                    setTimeout(() => {
+                        const tooltipVisible = $tooltip.is(':visible');
+                        const tooltipInDOM = $tooltip.parent().length > 0;
+                        console.log('[LilacQuiz] DEBUG: Tooltip visible:', tooltipVisible, 'In DOM:', tooltipInDOM);
+                        console.log('[LilacQuiz] DEBUG: Tooltip element:', $tooltip.get(0));
+                    }, 100);
                     
                     // Auto-remove tooltip after 8 seconds
                     setTimeout(() => {
+                        console.log('[LilacQuiz] DEBUG: Removing tooltip after 8 seconds');
                         $tooltip.fadeOut(300, function() {
                             $(this).remove();
                         });
                     }, 8000);
                     
                     console.log('[LilacQuiz] Added hint tooltip for wrong answer');
+                } else {
+                    console.log('[LilacQuiz] DEBUG: No hint target found!');
                 }
+            } else {
+                console.log('[LilacQuiz] DEBUG: Question is NOT locked, no tooltip needed');
             }
         });
 
