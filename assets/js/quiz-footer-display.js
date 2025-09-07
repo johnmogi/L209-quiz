@@ -336,7 +336,7 @@
         }
     };
 
-    // Initialize when script loads
-    QuizFooterDisplay.init();
+    // Initialize when script loads - DISABLED to prevent interference with quiz functionality
+    // QuizFooterDisplay.init();
 
 })(jQuery);

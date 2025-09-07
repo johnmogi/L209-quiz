@@ -327,6 +327,15 @@ class Lilac_Quiz_Sidebar {
             //     true
             // );
             
+            // Quiz Answer Display Fix - fixes "Correct answer" showing for all options
+            wp_enqueue_script(
+                'lilac-quiz-answer-fix',
+                LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-answer-fix.js',
+                array('jquery'),
+                LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(),
+                true
+            );
+            
             // DISABLED: Remove debug script in development
             // if (defined('WP_DEBUG') && WP_DEBUG) {
                 // Add debug styles
