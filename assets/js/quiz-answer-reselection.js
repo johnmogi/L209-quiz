@@ -217,6 +217,13 @@ if (typeof jQuery === 'undefined') {
                             .learndash-wrapper .wpProQuiz_content .wpProQuiz_response {
                                 min-height: 30px !important;
                             }
+                            
+                            /* Tooltip bounce animation */
+                            @keyframes lilac-tooltip-bounce {
+                                0% { transform: translateX(-50%) translateY(-10px); opacity: 0; }
+                                50% { transform: translateX(-50%) translateY(-5px); opacity: 0.8; }
+                                100% { transform: translateX(-50%) translateY(0px); opacity: 1; }
+                            }
                         `)
                         .appendTo('head');
                 }
@@ -536,22 +543,39 @@ if (typeof jQuery === 'undefined') {
             // Remove any previous messages
             $question.find('.lilac-correct-answer-message').remove();
             
-            // For locked questions, just animate hint button
+            // For locked questions, add tooltip pointing to hint button
             if ($question.hasClass('lilac-locked')) {
-                // Gentle hint button animation
-                const $hintButton = $question.find('.lilac-force-hint, .wpProQuiz_button[name="tip"]');
-                if ($hintButton.length) {
-                    $hintButton.css({
-                        'animation': 'lilac-gentle-pulse 2s ease-in-out 3',
-                        'box-shadow': '0 0 10px rgba(255, 152, 0, 0.5)'
+                // Remove any existing tooltips first
+                $question.find('.lilac-hint-tooltip').remove();
+                
+                // Find the hint button or hint box
+                const $hintTarget = $question.find('.lilac-hint-box, .lilac-force-hint, .wpProQuiz_button[name="tip"]').first();
+                
+                if ($hintTarget.length) {
+                    // Create tooltip pointing to hint
+                    const $tooltip = $('<div class="lilac-hint-tooltip" style="position: absolute; background: #f44336; color: white; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; z-index: 1000; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3); animation: lilac-tooltip-bounce 0.5s ease-out;">לחץ על הרמז! ⬇</div>');
+                    
+                    // Position tooltip above the hint target
+                    $hintTarget.css('position', 'relative');
+                    $tooltip.css({
+                        'top': '-45px',
+                        'left': '50%',
+                        'transform': 'translateX(-50%)'
                     });
                     
+                    // Add arrow pointing down
+                    $tooltip.append('<div style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #f44336;"></div>');
+                    
+                    $hintTarget.append($tooltip);
+                    
+                    // Auto-remove tooltip after 8 seconds
                     setTimeout(() => {
-                        $hintButton.css({
-                            'animation': '',
-                            'box-shadow': ''
+                        $tooltip.fadeOut(300, function() {
+                            $(this).remove();
                         });
-                    }, 6000);
+                    }, 8000);
+                    
+                    console.log('[LilacQuiz] Added hint tooltip for wrong answer');
                 }
             }
         });
