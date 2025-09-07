@@ -70,6 +70,9 @@
                 window.lilacIsAnswerCorrect = this.isAnswerCorrect.bind(this);
                 window.lilacGetCorrectAnswer = this.getCorrectAnswer.bind(this);
                 
+                // Also make data available for debugger
+                window.lilacQuizCorrectAnswers = this.correctAnswers;
+                
                 return true; // Data loaded successfully
             } else {
                 console.log('🔧 Quiz data not yet available, will retry...');
