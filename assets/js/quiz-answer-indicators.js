@@ -145,57 +145,16 @@
         },
 
         /**
-         * Update the indicator for a specific question
+         * Update the indicator for a specific question - DISABLED
          */
         updateIndicatorForQuestion: function($question) {
-            // Remove any existing indicators
-            $question.find('.lilac-answer-indicator-container').remove();
+            // Remove any existing indicators - gently clean up
+            $question.find('.lilac-answer-indicator-container').fadeOut(300, function() {
+                $(this).remove();
+            });
             
-            // Check for correct answers
-            const $correctAnswers = $question.find('.wpProQuiz_answerCorrect, .wpProQuiz_answerCorrectIncomplete');
-            const $incorrectAnswers = $question.find('.wpProQuiz_answerIncorrect');
-            
-            let indicatorHtml = '';
-            let indicatorClass = '';
-            
-            if ($correctAnswers.length > 0) {
-                // Correct answer found
-                indicatorClass = 'correct';
-                indicatorHtml = '<span class="icon">✓</span>תשובה נכונה';
-                console.log('[Answer Indicators] Showing correct indicator for question');
-            } else if ($incorrectAnswers.length > 0) {
-                // Incorrect answer found
-                indicatorClass = 'incorrect';
-                indicatorHtml = '<span class="icon">✗</span>תשובה שגויה! השתמש רמז לקבלת עזרה';
-                console.log('[Answer Indicators] Showing incorrect indicator for question');
-            } else {
-                // No answer state detected yet
-                return;
-            }
-            
-            // Create the indicator
-            const $indicator = $('<div class="lilac-answer-indicator-container">' +
-                '<div class="lilac-answer-indicator ' + indicatorClass + '">' +
-                indicatorHtml +
-                '</div>' +
-                '</div>');
-            
-            // Find the best position to insert the indicator
-            const $hintButton = $question.find('.wpProQuiz_button[name="tip"], .wpProQuiz_TipButton');
-            const $responseArea = $question.find('.wpProQuiz_response');
-            const $questionButtons = $question.find('.wpProQuiz_button').first();
-            
-            // Position priority: above hint button > above response area > above question buttons
-            if ($hintButton.length > 0) {
-                $indicator.insertBefore($hintButton.first());
-            } else if ($responseArea.length > 0) {
-                $indicator.insertBefore($responseArea);
-            } else if ($questionButtons.length > 0) {
-                $indicator.insertBefore($questionButtons);
-            } else {
-                // Fallback: append to question
-                $question.append($indicator);
-            }
+            // No longer creating new indicators per user request
+            return;
         },
 
         /**

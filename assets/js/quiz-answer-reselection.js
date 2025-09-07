@@ -212,6 +212,11 @@ if (typeof jQuery === 'undefined') {
                                 border: none !important;
                                 background: transparent !important;
                             }
+                            
+                            /* Add minimum height for response area */
+                            .learndash-wrapper .wpProQuiz_content .wpProQuiz_response {
+                                min-height: 30px !important;
+                            }
                         `)
                         .appendTo('head');
                 }
@@ -531,21 +536,8 @@ if (typeof jQuery === 'undefined') {
             // Remove any previous messages
             $question.find('.lilac-correct-answer-message').remove();
             
-            // For locked questions, add persistent tooltip instead of temporary colors
+            // For locked questions, just animate hint button
             if ($question.hasClass('lilac-locked')) {
-                // Add persistent tooltip for wrong answer
-                if (!$selectedAnswer.hasClass('lilac-has-wrong-tooltip')) {
-                    $selectedAnswer.addClass('lilac-has-wrong-tooltip');
-                    
-                    // Create persistent tooltip that won't disappear after hint viewing
-                    const $tooltip = $('<div class="lilac-wrong-tooltip" style="position: absolute; top: -30px; right: 5px; background: #f44336; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; z-index: 1000; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">תשובה שגויה</div>');
-                    
-                    // Position tooltip
-                    $selectedAnswer.css('position', 'relative').append($tooltip);
-                    
-                    console.log('[LilacQuiz] Added persistent wrong answer tooltip');
-                }
-                
                 // Gentle hint button animation
                 const $hintButton = $question.find('.lilac-force-hint, .wpProQuiz_button[name="tip"]');
                 if ($hintButton.length) {
