@@ -98,6 +98,65 @@ div[style*="font-weight: bold; padding-top: 5px;"] {
     display: inline-block !important;
 }
 
+/* Fix hint modal styling */
+.lilac-modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.lilac-modal-content {
+    background-color: #fefefe;
+    margin: 10% auto;
+    padding: 20px;
+    border: none;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.lilac-modal-close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    right: 15px;
+    top: 10px;
+    cursor: pointer;
+}
+
+.lilac-modal-close:hover,
+.lilac-modal-close:focus {
+    color: #000;
+    text-decoration: none;
+}
+
+.lilac-modal-body {
+    margin-top: 20px;
+    text-align: right;
+    direction: rtl;
+}
+
+.lilac-modal-body h5 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.lilac-modal-body p {
+    color: #666;
+    line-height: 1.6;
+    font-size: 16px;
+}
+
 /* Hide/show Next button as needed */
 .wpProQuiz_incorrect + .wpProQuiz_button[name="next"],
 .wpProQuiz_incorrect ~ .wpProQuiz_button[name="next"] {

@@ -84,11 +84,17 @@ class Lilac_Quiz_Sidebar {
             return;
         }
 
-        // Get quiz answers from database
-        $db_config = Lilac_Quiz_DB_Config::get_instance();
-        $pdo = $db_config->get_connection();
-        
-        if (!$pdo) {
+        // Get quiz answers from database - with error handling
+        try {
+            $db_config = Lilac_Quiz_DB_Config::get_instance();
+            $pdo = $db_config->get_connection();
+            
+            if (!$pdo) {
+                error_log('Lilac Quiz: Database connection failed for footer injection');
+                return;
+            }
+        } catch (Exception $e) {
+            error_log('Lilac Quiz: Database config error: ' . $e->getMessage());
             return;
         }
 

@@ -760,7 +760,7 @@ if (typeof jQuery === 'undefined') {
     // Initialize the plugin
     $(document).ready(function() {
         initQuizAnswerReselection();
-        setupObserver();
+        // setupObserver(); // Removed - function doesn't exist
         setupAnswerObserver();
         
         // Check if first question needs immediate processing
