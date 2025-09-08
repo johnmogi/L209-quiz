@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-/**
+/** 
  * Class Lilac_Quiz_Sidebar
  * 
  * Handles the sidebar functionality for LearnDash quizzes
@@ -67,6 +67,71 @@ class Lilac_Quiz_Sidebar {
         
         // Disable debug panel display
         add_action('wp_footer', array($this, 'disable_debug_panel'), 999);
+    }
+
+    /**
+     * Inject quiz answers into footer for instant verification
+     */
+    public function inject_quiz_answers_footer() {
+        if (!is_singular('sfwd-quiz')) {
+            return;
+        }
+
+        $quiz_id = get_the_ID();
+        $enforce_hint = get_post_meta($quiz_id, self::ENFORCE_HINT_META_KEY, true);
+        
+        if ($enforce_hint !== '1') {
+            return;
+        }
+
+        // Get quiz answers from database
+        $db_config = Lilac_Quiz_DB_Config::get_instance();
+        $pdo = $db_config->get_connection();
+        
+        if (!$pdo) {
+            return;
+        }
+
+        try {
+            $query = "
+                SELECT 
+                    q.id as question_id,
+                    q.answer_data,
+                    pm.post_id
+                FROM edc_posts p
+                JOIN edc_postmeta pm ON p.ID = pm.post_id AND pm.meta_key = 'question_pro_id'
+                JOIN edc_learndash_pro_quiz_question q ON q.id = pm.meta_value
+                WHERE p.post_parent = :quiz_id
+                ORDER BY pm.post_id
+            ";
+            
+            $stmt = $pdo->prepare($query);
+            $stmt->bindParam(':quiz_id', $quiz_id, PDO::PARAM_INT);
+            $stmt->execute();
+            $questions = $stmt->fetchAll();
+
+            $answers = array();
+            foreach ($questions as $index => $question) {
+                $answer_data = json_decode($question['answer_data'], true);
+                if ($answer_data && is_array($answer_data)) {
+                    foreach ($answer_data as $answer_index => $answer) {
+                        if (isset($answer['_answerCorrect']) && $answer['_answerCorrect']) {
+                            $answers[$index] = $answer_index;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Output JavaScript with answers
+            echo '<script type="text/javascript">
+                window.lilacQuizAnswers = ' . json_encode($answers) . ';
+                console.log("[LilacQuiz] Footer backup loaded with", Object.keys(window.lilacQuizAnswers).length, "answers");
+            </script>';
+            
+        } catch (Exception $e) {
+            error_log('Lilac Quiz Footer Backup Error: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -189,6 +254,9 @@ class Lilac_Quiz_Sidebar {
             error_log('Lilac Quiz Sidebar: Has sidebar meta: ' . print_r($has_sidebar, true));
             
             if ($has_sidebar === '1' || $has_sidebar === 'yes' || $has_sidebar === true) {
+                require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'includes/class-quiz-sidebar.php';
+                require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'includes/class-quiz-db-config.php';
+                require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'includes/class-quiz-analyzer-endpoint.php';
                 $custom_template = LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'templates/single-quiz-sidebar.php';
                 error_log('Lilac Quiz Sidebar: Looking for template at: ' . $custom_template);
                 
@@ -394,6 +462,27 @@ class Lilac_Quiz_Sidebar {
                     array('lilac-quiz-answer-reselection'),
                     LILAC_QUIZ_SIDEBAR_VERSION
                 );
+                
+                // Load performance-optimized answer verification
+                wp_enqueue_script(
+                    'lilac-quiz-performance-fix',
+                    LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-performance-fix.js',
+                    array('jquery'),
+                    LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(),
+                    true
+                );
+                
+                // Load footer backup system
+                wp_enqueue_script(
+                    'lilac-quiz-footer-backup',
+                    LILAC_QUIZ_SIDEBAR_PLUGIN_URL . 'assets/js/quiz-footer-backup.js',
+                    array('jquery'),
+                    LILAC_QUIZ_SIDEBAR_VERSION . '-' . time(),
+                    true
+                );
+                
+                // Inject quiz answers into footer for instant verification
+                add_action('wp_footer', array($this, 'inject_quiz_answers_footer'));
                 
                 // Enqueue navigation control script
                 wp_enqueue_script(

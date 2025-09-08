@@ -135,47 +135,32 @@ if (typeof jQuery === 'undefined') {
                             }
                             .lilac-modal-content {
                                 background-color: #fefefe;
-                                margin: 15% auto;  /* Changed from 5% to 15% */
-                                padding: 20px;
-                                border: 1px solid #888;
-                                width: 90%;
-                                max-width: 800px;
-                                max-height: 60vh;  /* Reduced from 80vh */
-                                overflow-y: auto;
-                                border-radius: 8px;
-                                position: relative;
-                            }
-                            .lilac-modal-close {
-                                color: #aaa;
-                                float: right;
-                                font-size: 28px;
-                                font-weight: bold;
-                                cursor: pointer;
-                            }
-                            .lilac-modal-close:hover {
-                                color: black;
-                            }
-                            .lilac-modal-body {
-                                margin-top: 20px;
-                                direction: rtl;
-                                text-align: right;
-                            }
+                                margin: 15% auto;  
+                           // Monitor for answer results (correct/incorrect indicators)
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            const $node = $(node);
+                            const $question = $node.closest('.wpProQuiz_listItem');
                             
-                            /* Override LearnDash green border for correct incomplete answers */
-                            .learndash-wrapper .wpProQuiz_content .wpProQuiz_questionListItem.wpProQuiz_answerCorrectIncomplete label {
-                                border-color: inherit !important;
+                            if ($question.length) {
+                                // Check for correct answer indicators
+                                const hasCorrect = $question.find('.wpProQuiz_answerCorrect, .wpProQuiz_answerCorrectIncomplete').length > 0;
+                                const hasIncorrect = $question.find('.wpProQuiz_answerIncorrect').length > 0;
+                                
+                                if (hasCorrect || hasIncorrect) {
+                                    const questionId = $question.attr('id') || $question.index();
+                                    console.log('[LilacQuiz] Answer result detected:', hasCorrect ? 'CORRECT' : 'INCORRECT');
+                                    handleAnswerResult($question, hasCorrect, questionId);
+                                }
                             }
-                            
-                            /* Ultra-strong selectors to override LearnDash styles */
-                            .wpProQuiz_content .wpProQuiz_questionListItem.lilac-correct-answer,
-                            .learndash-wrapper .wpProQuiz_content .wpProQuiz_questionListItem.lilac-correct-answer,
-                            .wpProQuiz_questionListItem.lilac-correct-answer,
-                            div.wpProQuiz_questionListItem.lilac-correct-answer {
-                                border: 2px solid #4CAF50 !important;
-                                background-color: #e8f5e8 !important;
-                                border-radius: 4px !important;
-                                box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3) !important;
-                            }
+                        }
+                    });
+                }
+            });
+        });
                             
                             .wpProQuiz_content .wpProQuiz_questionListItem.lilac-wrong-answer,
                             .learndash-wrapper .wpProQuiz_content .wpProQuiz_questionListItem.lilac-wrong-answer,
@@ -338,6 +323,8 @@ if (typeof jQuery === 'undefined') {
      * Handle the result of an answer submission
      */
     function handleAnswerResult($question, isCorrect, questionId) {
+        console.log('[LilacQuiz] DEBUG: handleAnswerResult called - isCorrect:', isCorrect);
+        
         // Remove any previous messages and hint boxes
         $question.find('.lilac-correct-answer-message, .lilac-hint-message, .lilac-hint-box').remove();
 
@@ -422,10 +409,11 @@ if (typeof jQuery === 'undefined') {
             const $firstBtn = $question.find('input.wpProQuiz_button').first();
             if ($firstBtn.length) {
                 $hintBox.insertBefore($firstBtn);
-                $hintMessage.insertBefore($firstBtn);
             } else {
-                $question.append($hintMessage);
+                $question.append($hintBox);
             }
+            
+            console.log('[LilacQuiz] DEBUG: Orange hint box created and inserted');
             
             // Make sure hint button is visible
             const $hintButton = $question.find('.wpProQuiz_button[name="tip"]');
@@ -535,66 +523,18 @@ if (typeof jQuery === 'undefined') {
             }
         });
 
-        // Handle answer selection changes
+        // Handle answer selection changes - DISABLED FOR DEBUGGING
         $(document).on('change', '.wpProQuiz_questionInput', function() {
             const $question = $(this).closest('.wpProQuiz_listItem');
             const $selectedAnswer = $(this).closest('.wpProQuiz_questionListItem');
             
+            console.log('[LilacQuiz] DEBUG: Answer selection changed - question locked?', $question.hasClass('lilac-locked'));
+            
             // Remove any previous messages
             $question.find('.lilac-correct-answer-message').remove();
             
-            // For locked questions, add tooltip pointing to hint button
-            if ($question.hasClass('lilac-locked')) {
-                console.log('[LilacQuiz] DEBUG: Question is locked, creating tooltip');
-                
-                // Remove any existing tooltips first
-                $question.find('.lilac-hint-tooltip').remove();
-                
-                // Find the hint button or hint box
-                const $hintTarget = $question.find('.lilac-hint-box, .lilac-force-hint, .wpProQuiz_button[name="tip"]').first();
-                console.log('[LilacQuiz] DEBUG: Found hint target:', $hintTarget.length, $hintTarget.get(0));
-                
-                if ($hintTarget.length) {
-                    // Create tooltip pointing to hint
-                    const $tooltip = $('<div class="lilac-hint-tooltip" style="position: absolute; background: #f44336 !important; color: white !important; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; z-index: 9999 !important; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3); animation: lilac-tooltip-bounce 0.5s ease-out;">לחץ על הרמז! ⬇</div>');
-                    
-                    // Position tooltip above the hint target
-                    $hintTarget.css('position', 'relative');
-                    $tooltip.css({
-                        'top': '-45px',
-                        'left': '50%',
-                        'transform': 'translateX(-50%)'
-                    });
-                    
-                    // Add arrow pointing down
-                    $tooltip.append('<div style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #f44336;"></div>');
-                    
-                    $hintTarget.append($tooltip);
-                    console.log('[LilacQuiz] DEBUG: Tooltip appended to target');
-                    
-                    // Force visibility check
-                    setTimeout(() => {
-                        const tooltipVisible = $tooltip.is(':visible');
-                        const tooltipInDOM = $tooltip.parent().length > 0;
-                        console.log('[LilacQuiz] DEBUG: Tooltip visible:', tooltipVisible, 'In DOM:', tooltipInDOM);
-                        console.log('[LilacQuiz] DEBUG: Tooltip element:', $tooltip.get(0));
-                    }, 100);
-                    
-                    // Auto-remove tooltip after 8 seconds
-                    setTimeout(() => {
-                        console.log('[LilacQuiz] DEBUG: Removing tooltip after 8 seconds');
-                        $tooltip.fadeOut(300, function() {
-                            $(this).remove();
-                        });
-                    }, 8000);
-                    
-                    console.log('[LilacQuiz] Added hint tooltip for wrong answer');
-                } else {
-                    console.log('[LilacQuiz] DEBUG: No hint target found!');
-                }
-            } else {
-                console.log('[LilacQuiz] DEBUG: Question is NOT locked, no tooltip needed');
-            }
+            // Skip tooltip creation for now - focus on main functionality
+            console.log('[LilacQuiz] DEBUG: Skipping tooltip creation to focus on hint box issue');
         });
 
         // Handle next button in success message
@@ -778,36 +718,6 @@ if (typeof jQuery === 'undefined') {
     }
 
     /**
-     * Set up a mutation observer to watch for dynamically added questions
-     */
-    function setupObserver() {
-        log.info('MutationObserver setup complete');
-        
-        // Create a mutation observer to watch for dynamically added elements
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                    // Convert added nodes to jQuery collection for easier filtering
-                    const $addedNodes = $(mutation.addedNodes).filter(function() {
-                        return this.nodeType === 1; // Only process Element nodes
-                    });
-                    
-                    // Check for new quiz questions and create hint boxes
-                    $addedNodes.find('.wpProQuiz_listItem').each(function() {
-                        const $question = $(this);
-                        if (!$question.find('.lilac-hint-box').length) {
-                            console.log('[LilacQuiz] New question detected, creating hint box');
-                            createInitialHintBox($question);
-                        }
-                    });
-                    
-                    // Also check if the added node itself is a quiz question
-                    $addedNodes.filter('.wpProQuiz_listItem').each(function() {
-                        const $question = $(this);
-                        if (!$question.find('.lilac-hint-box').length) {
-                            console.log('[LilacQuiz] New question detected (direct), creating hint box');
-                            createInitialHintBox($question);
-                        }
                     });
                     
                     // Style any hint buttons in the added nodes

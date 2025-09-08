@@ -24,6 +24,8 @@ define('LILAC_QUIZ_SIDEBAR_PLUGIN_URL', plugin_dir_url(__FILE__));
 
 // Include the main class
 require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'includes/class-quiz-sidebar.php';
+require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'includes/class-quiz-db-config.php';
+require_once LILAC_QUIZ_SIDEBAR_PLUGIN_DIR . 'includes/class-quiz-analyzer-endpoint.php';
 
 // Initialize the plugin
 function lilac_quiz_sidebar_init() {
@@ -35,6 +37,9 @@ function lilac_quiz_sidebar_init() {
     
     // Initialize the sidebar class
     Lilac_Quiz_Sidebar::get_instance();
+    
+    // Initialize the analyzer endpoint
+    Lilac_Quiz_Analyzer_Endpoint::get_instance();
 }
 add_action('plugins_loaded', 'lilac_quiz_sidebar_init');
 
